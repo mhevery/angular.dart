@@ -30,6 +30,7 @@ part 'directives/ng_model.dart';
 part 'directives/ng_mustache.dart';
 part 'directives/ng_repeat.dart';
 part 'directives/ng_show.dart';
+part 'directives/ng_style.dart';
 part 'dom_utilities.dart';
 part 'exception_handler.dart';
 part 'http.dart';
@@ -103,6 +104,7 @@ class AngularModule extends Module {
     directive(NgIncludeAttrDirective);
     directive(NgRepeatAttrDirective);
     directive(NgShowAttrDirective);
+    directive(NgStyleDirective);
 
     directive(InputTextDirective);
     directive(InputCheckboxDirective);

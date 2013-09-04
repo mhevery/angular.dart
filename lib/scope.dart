@@ -247,6 +247,7 @@ class Scope implements Map {
                 if (!(identical(value, last) || (value is String && last is String && value == last)) &&
                     !(value is num && last is num && value.isNaN && last.isNaN)) {
                   dirty = true;
+                  //print('${watch.last} => $value');
                   watch.last = value;
                   watch.fn(value, ((last == initWatchVal) ? value : last), current);
                   if (_ttlLeft < 5) {
