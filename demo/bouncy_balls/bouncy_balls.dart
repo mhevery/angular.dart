@@ -25,6 +25,10 @@ class BallModel {
 
 }
 
+@NgController(
+  selector: '[bounce-controller]',
+  publishAs: 'bounce'
+)
 class BounceController {
   var lastTime = window.performance.now();
   var run = true;
@@ -35,7 +39,7 @@ class BounceController {
   var scope;
   var ballClassName = 'ball';
 
-  BounceController(Zone this.zone, Scope this.scope) {
+  BounceController(NgZone this.zone, Scope this.scope) {
     changeCount(100);
     tick();
   }
@@ -95,7 +99,7 @@ class BounceController {
 @NgDirective(
   selector: '[ball-position]',
   map: const {
-    "ballPosition": '=.position'
+    "ballPosition": '=>position'
   }
 )
 class BallPositionDirective {
@@ -112,11 +116,13 @@ class BallPositionDirective {
   }
 }
 
+class MyModule extends Module {
+  MyModule() {
+    type(BounceController);
+    type(BallPositionDirective);
+  }
+}
+
 main() {
-  var ngModule = new AngularModule();
-
-  ngModule.controller('Bounce', BounceController);
-  ngModule.directive(BallPositionDirective);
-
-  bootstrapAngular([ngModule]);
+  ngBootstrap(module: new MyModule());
 }
