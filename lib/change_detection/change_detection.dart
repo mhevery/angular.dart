@@ -1,16 +1,18 @@
 library change_detection;
 
 /**
- * An interface for [ChangeDetectorGroup] groups related watches together. It guarentees
- * that within the group all watches will be reported in the order in which they were registered.
- * It also provides an efficient way of removing the watch group.
+ * An interface for [ChangeDetectorGroup] groups related watches together. It
+ * guarentees that within the group all watches will be reported in the order in
+ * which they were registered. It also provides an efficient way of removing the
+ * watch group.
  */
 abstract class ChangeDetectorGroup<H> {
   /**
    * Watch a specific [field] on an [object].
    *
    * If the [field] is:
-   *   - _name_ - Name of the field to watch. (If the [object is a Map then treat it as a key.)
+   *   - _name_ - Name of the field to watch. (If the [object] is a Map then
+   *   treat it as a key.)
    *   - _[]_ - Watch all items in an array.
    *   - _{}_ - Watch all items in a Map.
    *   - _._ - Watch the actual object identity.
@@ -32,34 +34,34 @@ abstract class ChangeDetectorGroup<H> {
 }
 
 /**
- * An interface for [ChangeDetector]. An application can have multiple instance of the
- * [ChangeDetector] to be used for checking different application domains.
+ * An interface for [ChangeDetector]. An application can have multiple instances
+ * of the [ChangeDetector] to be used for checking different application domains.
  *
- * [ChangeDetector] works by comparing the identity of the objects not by calling the [.equals()]
- * method. This is because ChangeDetector needs to have predictable performance, and the
- * developer can implement [.equals()] on top of identity checks.
+ * [ChangeDetector] works by comparing the identity of the objects not by
+ * calling the `.equals()` method. This is because ChangeDetector needs to have
+ * predictable performance, and the developer can implement `.equals()` on top
+ * of identity checks.
  *
- * - [H] A [ChangeRecord] has associated handler object. The handler object is opaque to the
- *   [ChangeDetector] but it is meaningful to the code which registered the watcher. It can be
- *   data structure, object, or function. It is up to the developer to attach meaning to it.
+ * - [H] A [ChangeRecord] has associated handler object. The handler object is
+ * opaque to the [ChangeDetector] but it is meaningful to the code which
+ * registered the watcher. It can be a data structure, an object, or a function.
+ * It is up to the developer to attach meaning to it.
  */
 abstract class ChangeDetector<H> extends ChangeDetectorGroup<H> {
   /**
-   * This method does the work of collecting the changes and returns them as a linked list of
-   * [ChangeRecord]s. The [ChangeRecord]s are to be returned in the same order as they were
-   * registered.
+   * This method does the work of collecting the changes and returns them as a
+   * linked list of [ChangeRecord]s. The [ChangeRecord]s are to be returned in
+   * the same order as they were registered.
    */
   ChangeRecord<H> collectChanges();
 }
 
 abstract class Record<H> {
-  /** The object where the change occurred. */
+  /** The observed object. */
   Object get object;
 
   /**
-   * The field which is being watched.
-   *
-   * The string is:
+   * The field which is being watched:
    *   - _name_ - Name of the field to watch.
    *   - _[]_ - Watch all items in an array.
    *   - _{}_ - Watch all items in a Map.
@@ -68,29 +70,29 @@ abstract class Record<H> {
   String get field;
 
   /**
-   *  The handler is an application provided object which contains the specific logic
-   *  which needs to be applied when the change is detected. The handler is opaque to the
-   *  ChangeDetector and as such can be anything the application desires.
+   * An application provided object which contains the specific logic which
+   * needs to be applied when the change is detected. The handler is opaque to
+   * the ChangeDetector and as such can be anything the application desires.
    */
   H get handler;
 
   /** Current value of the [field] on the [object] */
-  dynamic get currentValue;
+  get currentValue;
   /** Previous value of the [field] on the [object] */
-  dynamic get previousValue;
+  get previousValue;
 }
 
 /**
- * [WatchRecord] API which allows changing what object is being watched and manually triggering the
- * checking.
+ * [WatchRecord] API which allows changing what object is being watched and
+ * manually triggering the checking.
  */
 abstract class WatchRecord<H> extends Record<H> {
   /** Set a new object for checking */
-  set object(dynamic value);
+  set object(value);
 
   /**
-   * Check to see if the field on the object has changed. Returns [null] if no change, or a
-   * [ChangeRecord] if the change has been detected.
+   * Check to see if the field on the object has changed. Returns [null] if no
+   * change, or a [ChangeRecord] if the change has been detected.
    */
   ChangeRecord<H> check();
 
@@ -98,9 +100,9 @@ abstract class WatchRecord<H> extends Record<H> {
 }
 
 /**
- * A change record provides information about the changes which were detected in objects.
+ * Provides information about the changes which were detected in objects.
  *
- * It exposes a nextChange method for traversing all of the changes.
+ * It exposes a `nextChange` method for traversing all of the changes.
  */
 abstract class ChangeRecord<H> extends Record<H> {
   /** Next [ChangeRecord] */
@@ -108,10 +110,11 @@ abstract class ChangeRecord<H> extends Record<H> {
 }
 
 /**
- * If [ChangeDetector] is watching a collection (an [Iterable]) then the [currentValue] of [Record]
- * will contain this object. The object contains a summary of changes to the collection since
- * last execution. The changes are reported a list of [CollectionChangeItem]s which contain the
- * current and previous position in the list as well as the item.
+ * If [ChangeDetector] is watching a collection (an [Iterable]) then the
+ * [currentValue] of [Record] will contain this object. The object contains a
+ * summary of changes to the collection since the last execution. The changes
+ * are reported as a list of [CollectionChangeItem]s which contain the current
+ * and previous position in the list as well as the item.
  */
 abstract class CollectionChangeRecord<K, V> {
 
@@ -126,8 +129,8 @@ abstract class CollectionChangeRecord<K, V> {
 }
 
 /**
- * Each item in collection is wrapped in [CollectionChangeItem], which can track the
- * [item]s [currentKey] and [previousKey] location.
+ * Each item in collection is wrapped in [CollectionChangeItem], which can track
+ * the [item]s [currentKey] and [previousKey] location.
  */
 abstract class CollectionChangeItem<K, V> {
   /** Previous item location in the list or [null] if addition. */
