@@ -26,14 +26,15 @@ main() => describe('DirtyCheckingChangeDetector', () {
       var user = new _User('', '');
       var change;
 
-      detector.watch(user, 'first', null);
-      detector.watch(user, 'last', null);
-      detector.collectChanges(); // throw away first set
+      detector
+          ..watch(user, 'first', null)
+          ..watch(user, 'last', null)
+          ..collectChanges(); // throw away first set
 
       change = detector.collectChanges();
       expect(change).toEqual(null);
-      user.first = 'misko';
-      user.last = 'hevery';
+      user..first = 'misko'
+          ..last = 'hevery';
 
       change = detector.collectChanges();
       expect(change.currentValue).toEqual('misko');
@@ -59,8 +60,7 @@ main() => describe('DirtyCheckingChangeDetector', () {
     it('should ignore NaN != NaN', () {
       var user = new _User();
       user.age = double.NAN;
-      detector.watch(user, 'age', null);
-      detector.collectChanges(); // throw away first set
+      detector..watch(user, 'age', null)..collectChanges(); // throw away first set
 
       var changes = detector.collectChanges();
       expect(changes).toEqual(null);
@@ -121,7 +121,8 @@ main() => describe('DirtyCheckingChangeDetector', () {
       child2.watch(obj,'a', '2A');
 
       obj['a'] = 1;
-      expect(detector.collectChanges(), toEqualChanges(['0a', '0A', '1a', '1A', '2A', '1b']));
+      expect(detector.collectChanges(),
+          toEqualChanges(['0a', '0A', '1a', '1A', '2A', '1b']));
 
       obj['a'] = 2;
       child1a.remove(); // should also remove child2
@@ -293,12 +294,11 @@ main() => describe('DirtyCheckingChangeDetector', () {
       detector.collectChanges();
       list.insert(0, 'b');
       expect(list).toEqual(['b', 'a', 'a', 'b', 'b']);
-      // todo(vbe) There is something wrong when running this test w/ karma
-//      expect(detector.collectChanges().currentValue, toEqualCollectionRecord(
-//          collection: ['b[2 -> 0]', 'a[0 -> 1]', 'a[1 -> 2]', 'b', 'b[null -> 4]'],
-//          additions: ['b[null -> 4]'],
-//          moves: ['b[2 -> 0]', 'a[0 -> 1]', 'a[1 -> 2]'],
-//          removals: []));
+      expect(detector.collectChanges().currentValue, toEqualCollectionRecord(
+          collection: ['b[2 -> 0]', 'a[0 -> 1]', 'a[1 -> 2]', 'b', 'b[null -> 4]'],
+          additions: ['b[null -> 4]'],
+          moves: ['b[2 -> 0]', 'a[0 -> 1]', 'a[1 -> 2]'],
+          removals: []));
     });
 
     it('should support UnmodifiableListView', () {
@@ -397,8 +397,7 @@ main() => describe('DirtyCheckingChangeDetector', () {
 
     it('should do basic operations', () {
       var k1 = 'a';
-      var r1 = new ItemRecord(k1);
-      r1.currentKey = 1;
+      var r1 = new ItemRecord(k1)..currentIndex = 1;
       map.put(r1);
       expect(map.get(k1, 2)).toEqual(null);
       expect(map.get(k1, 1)).toEqual(null);
@@ -409,12 +408,9 @@ main() => describe('DirtyCheckingChangeDetector', () {
 
     it('should do basic operations on duplicate keys', () {
       var k1 = 'a';
-      var r1 = new ItemRecord(k1);
-      var r2 = new ItemRecord(k1);
-      r1.currentKey = 1;
-      r2.currentKey = 2;
-      map.put(r1);
-      map.put(r2);
+      var r1 = new ItemRecord(k1)..currentIndex = 1;
+      var r2 = new ItemRecord(k1)..currentIndex = 2;
+      map..put(r1)..put(r2);
       expect(map.get(k1, 0)).toEqual(r1);
       expect(map.get(k1, 1)).toEqual(r2);
       expect(map.get(k1, 2)).toEqual(null);
@@ -439,7 +435,7 @@ Matcher toEqualCollectionRecord({collection, additions, moves, removals}) =>
                                 moves:moves, removals:removals);
 Matcher toEqualMapRecord({map, additions, changes, removals}) =>
     new MapRecordMatcher(map:map, additions:additions,
-                                changes:changes, removals:removals);
+                         changes:changes, removals:removals);
 Matcher toEqualChanges(List changes) => new ChangeMatcher(changes);
 
 class ChangeMatcher extends Matcher {
@@ -447,9 +443,11 @@ class ChangeMatcher extends Matcher {
 
   ChangeMatcher(this.expected);
 
-  Description describe(Description description) => description..add(expected.toString());
+  Description describe(Description description) =>
+      description..add(expected.toString());
 
-  Description describeMismatch(changes, Description mismatchDescription, Map matchState, bool verbose) {
+  Description describeMismatch(changes, Description mismatchDescription,
+                               Map matchState, bool verbose) {
     List list = [];
     while(changes != null) {
       list.add(changes.handler);
@@ -469,14 +467,16 @@ class ChangeMatcher extends Matcher {
 }
 
 class CollectionRecordMatcher extends Matcher {
-  List collection;
-  List additions;
-  List moves;
-  List removals;
+  final List collection;
+  final List additions;
+  final List moves;
+  final List removals;
 
-  CollectionRecordMatcher({this.collection, this.additions, this.moves, this.removals});
+  CollectionRecordMatcher({this.collection, this.additions, this.moves,
+                          this.removals});
 
-  Description describeMismatch(changes, Description mismatchDescription, Map matchState, bool verbose) {
+  Description describeMismatch(changes, Description mismatchDescription,
+                               Map matchState, bool verbose) {
     List diffs = matchState['diffs'];
     return mismatchDescription..add(diffs.join('\n'));
   }
@@ -496,16 +496,14 @@ class CollectionRecordMatcher extends Matcher {
   }
 
   bool matches(CollectionChangeRecord changeRecord, Map matchState) {
-    List diffs = matchState['diffs'] = [];
-    var equals = true;
-    equals = equals && checkCollection(changeRecord, diffs);
-    equals = equals && checkAdditions(changeRecord, diffs);
-    equals = equals && checkMoves(changeRecord, diffs);
-    equals = equals && checkRemovals(changeRecord, diffs);
-    return equals;
+    var diffs = matchState['diffs'] = [];
+    return checkCollection(changeRecord, diffs) &&
+           checkAdditions(changeRecord, diffs) &&
+           checkMoves(changeRecord, diffs) &&
+           checkRemovals(changeRecord, diffs);
   }
 
-  checkCollection(CollectionChangeRecord changeRecord, List diffs) {
+  bool checkCollection(CollectionChangeRecord changeRecord, List diffs) {
     var equals = true;
     if (collection != null) {
       CollectionItem collectionItem = changeRecord.collectionHead;
@@ -529,7 +527,7 @@ class CollectionRecordMatcher extends Matcher {
     return equals;
   }
 
-  checkAdditions(CollectionChangeRecord changeRecord, List diffs) {
+  bool checkAdditions(CollectionChangeRecord changeRecord, List diffs) {
     var equals = true;
     if (additions != null) {
       AddedItem addedItem = changeRecord.additionsHead;
@@ -553,7 +551,7 @@ class CollectionRecordMatcher extends Matcher {
     return equals;
   }
 
-  checkMoves(CollectionChangeRecord changeRecord, List diffs) {
+  bool checkMoves(CollectionChangeRecord changeRecord, List diffs) {
     var equals = true;
     if (moves != null) {
       MovedItem movedItem = changeRecord.movesHead;
@@ -577,7 +575,7 @@ class CollectionRecordMatcher extends Matcher {
     return equals;
   }
 
-  checkRemovals(CollectionChangeRecord changeRecord, List diffs) {
+  bool checkRemovals(CollectionChangeRecord changeRecord, List diffs) {
     var equals = true;
     if (removals != null) {
       RemovedItem removedItem = changeRecord.removalsHead;
@@ -603,14 +601,15 @@ class CollectionRecordMatcher extends Matcher {
 }
 
 class MapRecordMatcher extends Matcher {
-  List map;
-  List additions;
-  List changes;
-  List removals;
+  final List map;
+  final List additions;
+  final List changes;
+  final List removals;
 
   MapRecordMatcher({this.map, this.additions, this.changes, this.removals});
 
-  Description describeMismatch(changes, Description mismatchDescription, Map matchState, bool verbose) {
+  Description describeMismatch(changes, Description mismatchDescription,
+                               Map matchState, bool verbose) {
     List diffs = matchState['diffs'];
     return mismatchDescription..add(diffs.join('\n'));
   }
@@ -630,16 +629,14 @@ class MapRecordMatcher extends Matcher {
   }
 
   bool matches(MapChangeRecord changeRecord, Map matchState) {
-    List diffs = matchState['diffs'] = [];
-    var equals = true;
-    equals = equals && checkMap(changeRecord, diffs);
-    equals = equals && checkAdditions(changeRecord, diffs);
-    equals = equals && checkChanges(changeRecord, diffs);
-    equals = equals && checkRemovals(changeRecord, diffs);
-    return equals;
+    var diffs = matchState['diffs'] = [];
+    return checkMap(changeRecord, diffs) &&
+           checkAdditions(changeRecord, diffs) &&
+           checkChanges(changeRecord, diffs) &&
+           checkRemovals(changeRecord, diffs);
   }
 
-  checkMap(MapChangeRecord changeRecord, List diffs) {
+  bool checkMap(MapChangeRecord changeRecord, List diffs) {
     var equals = true;
     if (map != null) {
       KeyValue mapKeyValue = changeRecord.mapHead;
@@ -663,7 +660,7 @@ class MapRecordMatcher extends Matcher {
     return equals;
   }
 
-  checkAdditions(MapChangeRecord changeRecord, List diffs) {
+  bool checkAdditions(MapChangeRecord changeRecord, List diffs) {
     var equals = true;
     if (additions != null) {
       AddedKeyValue addedKeyValue = changeRecord.additionsHead;
@@ -687,7 +684,7 @@ class MapRecordMatcher extends Matcher {
     return equals;
   }
 
-  checkChanges(MapChangeRecord changeRecord, List diffs) {
+  bool checkChanges(MapChangeRecord changeRecord, List diffs) {
     var equals = true;
     if (changes != null) {
       ChangedKeyValue movedKeyValue = changeRecord.changesHead;
@@ -711,7 +708,7 @@ class MapRecordMatcher extends Matcher {
     return equals;
   }
 
-  checkRemovals(MapChangeRecord changeRecord, List diffs) {
+  bool checkRemovals(MapChangeRecord changeRecord, List diffs) {
     var equals = true;
     if (removals != null) {
       RemovedKeyValue removedKeyValue = changeRecord.removalsHead;

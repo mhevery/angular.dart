@@ -557,11 +557,10 @@ class _MapChangeRecord<K, V> implements MapChangeRecord<K, V> {
     }
   }
 
-  bool _isInRemovals(KeyValueRecord record) {
-    return record == _removalsHead ||
-           record._nextRemovedKeyValue != null ||
-           record._prevRemovedKeyValue != null;
-  }
+  bool _isInRemovals(KeyValueRecord record) =>
+      record == _removalsHead ||
+      record._nextRemovedKeyValue != null ||
+      record._prevRemovedKeyValue != null;
 
   void _addToRemovals(KeyValueRecord record) {
     assert(record._nextKeyValue == null);
@@ -580,7 +579,11 @@ class _MapChangeRecord<K, V> implements MapChangeRecord<K, V> {
 
   void _removeFromSeq(KeyValueRecord prev, KeyValueRecord record) {
     KeyValueRecord next = record._nextKeyValue;
-    if (prev == null) _mapHead = next; else prev._nextKeyValue = next;
+    if (prev == null) {
+      _mapHead = next;
+    } else {
+      prev._nextKeyValue = next;
+    }
     assert((() {
       record._nextKeyValue = null;
       return true;
@@ -594,8 +597,16 @@ class _MapChangeRecord<K, V> implements MapChangeRecord<K, V> {
 
     var prev = record._prevRemovedKeyValue;
     var next = record._nextRemovedKeyValue;
-    if (prev == null) _removalsHead = next; else prev._nextRemovedKeyValue = next;
-    if (next == null) _removalsTail = prev; else next._prevRemovedKeyValue = prev;
+    if (prev == null) {
+      _removalsHead = next;
+    } else {
+      prev._nextRemovedKeyValue = next;
+    }
+    if (next == null) {
+      _removalsTail = prev;
+    } else {
+      next._prevRemovedKeyValue = prev;
+    }
     record._prevRemovedKeyValue = record._nextRemovedKeyValue = null;
   }
 
@@ -627,7 +638,8 @@ class _MapChangeRecord<K, V> implements MapChangeRecord<K, V> {
   }
 }
 
-class KeyValueRecord<K, V> implements KeyValue<K, V>, AddedKeyValue<K, V>, RemovedKeyValue<K, V>, ChangedKeyValue<K, V> {
+class KeyValueRecord<K, V> implements KeyValue<K, V>, AddedKeyValue<K, V>,
+    RemovedKeyValue<K, V>, ChangedKeyValue<K, V> {
   final K key;
   V _previousValue, _currentValue;
 
@@ -651,7 +663,7 @@ class KeyValueRecord<K, V> implements KeyValue<K, V>, AddedKeyValue<K, V>, Remov
 }
 
 
-class _CollectionChangeRecord<K, V> implements CollectionChangeRecord<K, V> {
+class _CollectionChangeRecord<V> implements CollectionChangeRecord<V> {
   Iterable _iterable;
   /** Used to keep track of items during moves. */
   DuplicateMap _items = new DuplicateMap();
@@ -659,17 +671,17 @@ class _CollectionChangeRecord<K, V> implements CollectionChangeRecord<K, V> {
   /** Used to keep track of removed items. */
   DuplicateMap _removedItems = new DuplicateMap();
 
-  ItemRecord<K, V> _collectionHead, _collectionTail;
-  ItemRecord<K, V> _additionsHead, _additionsTail;
-  ItemRecord<K, V> _movesHead, _movesTail;
-  ItemRecord<K, V> _removalsHead, _removalsTail;
+  ItemRecord<V> _collectionHead, _collectionTail;
+  ItemRecord<V> _additionsHead, _additionsTail;
+  ItemRecord<V> _movesHead, _movesTail;
+  ItemRecord<V> _removalsHead, _removalsTail;
 
-  CollectionChangeItem<K, V> get collectionHead => _collectionHead;
-  CollectionChangeItem<K, V> get additionsHead => _additionsHead;
-  CollectionChangeItem<K, V> get movesHead => _movesHead;
-  CollectionChangeItem<K, V> get removalsHead => _removalsHead;
+  CollectionChangeItem<V> get collectionHead => _collectionHead;
+  CollectionChangeItem<V> get additionsHead => _additionsHead;
+  CollectionChangeItem<V> get movesHead => _movesHead;
+  CollectionChangeItem<V> get removalsHead => _removalsHead;
 
-  void forEachAddition(void f(AddedItem<K, V> addition)){
+  void forEachAddition(void f(AddedItem<V> addition)){
     ItemRecord record = _additionsHead;
     while(record != null) {
       f(record);
@@ -677,7 +689,7 @@ class _CollectionChangeRecord<K, V> implements CollectionChangeRecord<K, V> {
     }
   }
 
-  void forEachMove(void f(MovedItem<K, V> change)) {
+  void forEachMove(void f(MovedItem<V> change)) {
     ItemRecord record = _movesHead;
     while(record != null) {
       f(record);
@@ -685,7 +697,7 @@ class _CollectionChangeRecord<K, V> implements CollectionChangeRecord<K, V> {
     }
   }
 
-  void forEachRemoval(void f(RemovedItem<K, V> removal)){
+  void forEachRemoval(void f(RemovedItem<V> removal)){
     ItemRecord record = _removalsHead;
     while(record != null) {
       f(record);
@@ -706,7 +718,7 @@ class _CollectionChangeRecord<K, V> implements CollectionChangeRecord<K, V> {
       return false;
     } else if (collection is List) {
       List list = collection;
-      for(int index = 0, length = list.length; index < length; index++) {
+      for(int index = 0; index < list.length; index++) {
         var item = list[index];
         if (record == null || !identical(item, record.item)) {
           record = mismatch(record, item, index);
@@ -746,14 +758,14 @@ class _CollectionChangeRecord<K, V> implements CollectionChangeRecord<K, V> {
 
     record = _additionsHead;
     while(record != null) {
-      record.previousKey = record.currentKey;
+      record.previousIndex = record.currentIndex;
       record = record._nextAddedRec;
     }
     _additionsHead = _additionsTail = null;
 
     record = _movesHead;
     while(record != null) {
-      record.previousKey = record.currentKey;
+      record.previousIndex = record.currentIndex;
       var nextRecord = record._nextMovedRec;
       assert((record._nextMovedRec = null) == null);
       record = nextRecord;
@@ -779,7 +791,7 @@ class _CollectionChangeRecord<K, V> implements CollectionChangeRecord<K, V> {
    * - [item] is the current item in the collection
    * - [index] is the position of the item in the collection
    */
-  ItemRecord mismatch(ItemRecord record, dynamic item, int index) {
+  ItemRecord mismatch(ItemRecord record, item, int index) {
     // Guard against bogus String changes
     if (record != null && item is String && record.item is String &&
         record.item == item) {
@@ -845,8 +857,8 @@ class _CollectionChangeRecord<K, V> implements CollectionChangeRecord<K, V> {
     ItemRecord reinsertRecord = _removedItems.get(item);
     if (reinsertRecord != null) {
       record = _collection_reinsertAfter(reinsertRecord, record._prevRec, index);
-    } else if (record.currentKey != index) {
-      record.currentKey = index;
+    } else if (record.currentIndex != index) {
+      record.currentIndex = index;
       _moves_add(record);
     }
     return record;
@@ -938,7 +950,7 @@ class _CollectionChangeRecord<K, V> implements CollectionChangeRecord<K, V> {
     }
 
     _items.put(record);
-    record.currentKey = index;
+    record.currentIndex = index;
     return record;
   }
 
@@ -982,7 +994,7 @@ class _CollectionChangeRecord<K, V> implements CollectionChangeRecord<K, V> {
   }
 
   ItemRecord _removals_add(ItemRecord record) {
-    record.currentKey = null;
+    record.currentIndex = null;
     _removedItems.put(record);
 
     if (_removalsTail == null) {
@@ -1037,27 +1049,27 @@ removals: ${removals.join(", ")}'
   }
 }
 
-class ItemRecord<K, V> implements CollectionItem<K, V>, AddedItem<K, V>,
-    MovedItem<K, V>, RemovedItem<K, V> {
-  K previousKey = null;
-  K currentKey = null;
+class ItemRecord<V> implements CollectionItem<V>, AddedItem<V>, MovedItem<V>,
+    RemovedItem<V> {
+  int previousIndex = null;
+  int currentIndex = null;
   V item = _INITIAL_;
 
-  ItemRecord<K, V> _prevRec, _nextRec;
-  ItemRecord<K, V> _prevDupRec, _nextDupRec;
-  ItemRecord<K, V> _prevRemovedRec, _nextRemovedRec;
-  ItemRecord<K, V> _nextAddedRec, _nextMovedRec;
+  ItemRecord<V> _prevRec, _nextRec;
+  ItemRecord<V> _prevDupRec, _nextDupRec;
+  ItemRecord<V> _prevRemovedRec, _nextRemovedRec;
+  ItemRecord<V> _nextAddedRec, _nextMovedRec;
 
-  CollectionItem<K, V> get nextCollectionItem => _nextRec;
-  RemovedItem<K, V> get nextRemovedItem => _nextRemovedRec;
-  AddedItem<K, V> get nextAddedItem => _nextAddedRec;
-  MovedItem<K, V> get nextMovedItem => _nextMovedRec;
+  CollectionItem<V> get nextCollectionItem => _nextRec;
+  RemovedItem<V> get nextRemovedItem => _nextRemovedRec;
+  AddedItem<V> get nextAddedItem => _nextAddedRec;
+  MovedItem<V> get nextMovedItem => _nextMovedRec;
 
   ItemRecord(this.item);
 
-  toString() => previousKey == currentKey ?
-      '$item' :
-      '$item[$previousKey -> $currentKey]';
+  String toString() => previousIndex == currentIndex
+      ? '$item'
+      : '$item[$previousIndex -> $currentIndex]';
 }
 
 class _DuplicateItemRecordList {
@@ -1081,7 +1093,11 @@ class _DuplicateItemRecordList {
         var next = beforeRecord;
         record._prevDupRec = prev;
         record._nextDupRec = next;
-        if (prev == null) head = record; else prev._nextDupRec = record;
+        if (prev == null) {
+          head = record;
+        } else {
+          prev._nextDupRec = record;
+        }
         next._prevDupRec = record;
       }
     }
@@ -1091,7 +1107,7 @@ class _DuplicateItemRecordList {
     ItemRecord record = head;
     while(record != null) {
       if (hideIndex == null ||
-          hideIndex < record.currentKey && identical(record.item, key)) {
+          hideIndex < record.currentIndex && identical(record.item, key)) {
         return record;
       }
       record = record._nextDupRec;
@@ -1135,8 +1151,7 @@ class _DuplicateItemRecordList {
  * key.
  */
 class DuplicateMap {
-  final Map<dynamic, _DuplicateItemRecordList> map =
-      new Map<dynamic, _DuplicateItemRecordList>();
+  final map = <dynamic, _DuplicateItemRecordList>{};
 
   void put(ItemRecord record, [ItemRecord beforeRecord = null]) {
     assert(record._nextDupRec == null);
