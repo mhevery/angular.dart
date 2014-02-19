@@ -282,7 +282,7 @@ class Scope {
 
 
 class ScopeStats {
-  bool report = true;
+  bool report = false;
   NumberFormat nf = new NumberFormat.decimalPattern();
   RootScope _rootScope;
 
