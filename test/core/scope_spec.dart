@@ -847,7 +847,7 @@ main() => describe('scope', () {
     }));
 
 
-    it(r'should run digest multiple times', inject(
+    iit(r'should run digest multiple times', inject(
             (RootScope rootScope) {
           // tests a traversal edge case which we originally missed
           var log = [];
