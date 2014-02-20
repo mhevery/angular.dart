@@ -456,9 +456,13 @@ class _MapChangeRecord<K, V> implements MapChangeRecord<K, V> {
       if (oldSeqRecord != null && key == oldSeqRecord.key) {
         newSeqRecord = oldSeqRecord;
         if (!identical(value, oldSeqRecord._currentValue)) {
-          oldSeqRecord._previousValue = oldSeqRecord._currentValue;
+          var prev = oldSeqRecord._previousValue = oldSeqRecord._currentValue;
           oldSeqRecord._currentValue = value;
-          _addToChanges(oldSeqRecord);
+          if (!((value is String && prev is String && value == prev) ||
+                (value is num && value.isNaN && prev is num && prev.isNaN))) {
+            // Check string by value rather than reference
+            _addToChanges(oldSeqRecord);
+          }
         }
       } else {
         seqChanged = true;
@@ -798,11 +802,17 @@ class _CollectionChangeRecord<V> implements CollectionChangeRecord<V> {
    */
   ItemRecord mismatch(ItemRecord record, item, int index) {
     // Guard against bogus String changes
-    if (record != null && item is String && record.item is String &&
-        record.item == item) {
-      // this is false change in strings we need to recover, and pretend it is
-      // the same. We save the value so that next time identity will pass
-      return record..item = item;
+    if (record != null) {
+      if (item is String && record.item is String && record.item == item) {
+        // this is false change in strings we need to recover, and pretend it is
+        // the same. We save the value so that next time identity can pass
+        return record..item = item;
+      }
+
+      if (item is num && item.isNaN && record.item is num && record.item.isNaN){
+        // we need this for JavaScript since in JS NaN !== NaN.
+        return record;
+      }
     }
 
     // find the previous record so that we know where to insert after.
