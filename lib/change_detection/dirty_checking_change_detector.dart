@@ -315,7 +315,10 @@ class DirtyCheckingRecord<H> implements ChangeRecord<H>, WatchRecord<H> {
     _object = obj;
     if (obj == null) {
       _mode = _MODE_IDENTITY_;
-    } else if (field == null) {
+      return;
+    }
+
+    if (field == null) {
       _instanceMirror = null;
       if (obj is Map) {
         if (_mode != _MODE_MAP_) {
@@ -332,17 +335,19 @@ class DirtyCheckingRecord<H> implements ChangeRecord<H>, WatchRecord<H> {
       } else {
         _mode = _MODE_IDENTITY_;
       }
+
+      return;
+    }
+
+    if (obj is Map) {
+      _mode =  _MODE_MAP_FIELD_;
+      _instanceMirror = null;
+    } else if (_getter != null) {
+      _mode = _MODE_GETTER_;
+      _instanceMirror = null;
     } else {
-      if (obj is Map) {
-        _mode =  _MODE_MAP_FIELD_;
-        _instanceMirror = null;
-      } else if (_getter != null) {
-        _mode = _MODE_GETTER_;
-        _instanceMirror = null;
-      } else {
-        _mode = _MODE_REFLECT_;
-        _instanceMirror = reflect(obj);
-      }
+      _mode = _MODE_REFLECT_;
+      _instanceMirror = reflect(obj);
     }
   }
 
@@ -380,7 +385,7 @@ class DirtyCheckingRecord<H> implements ChangeRecord<H>, WatchRecord<H> {
         // is the same. We save the value so that next time identity will pass
         currentValue = current;
       } else if (last is num && last.isNaN && current is num && current.isNaN) {
-        // we need this for JavaScript since in JS NaN !== NaN.
+        // we need this for the compiled JavaScript since in JS NaN !== NaN.
       } else {
         previousValue = last;
         currentValue = current;
@@ -391,11 +396,11 @@ class DirtyCheckingRecord<H> implements ChangeRecord<H>, WatchRecord<H> {
   }
 
 
-  remove() {
+  void remove() {
     _group._recordRemove(this);
   }
 
-  toString() => '${_MODE_NAMES[_mode]}[$field]';
+  String toString() => '${_MODE_NAMES[_mode]}[$field]';
 }
 
 final Object _INITIAL_ = new Object();
@@ -443,7 +448,7 @@ class _MapChangeRecord<K, V> implements MapChangeRecord<K, V> {
   }
 
 
-  _check(Map map) {
+  bool _check(Map map) {
     _reset();
     _map = map;
     Map records = _records;
@@ -710,10 +715,9 @@ class _CollectionChangeRecord<V> implements CollectionChangeRecord<V> {
     }
   }
 
-
   Iterable get iterable => _iterable;
 
-  _check(Iterable collection) {
+  bool _check(Iterable collection) {
     _reset();
     ItemRecord record = _collectionHead;
     bool maybeDirty = false;
@@ -721,7 +725,9 @@ class _CollectionChangeRecord<V> implements CollectionChangeRecord<V> {
     identical(_iterable, collection)) {
       // Short circuit and assume that the list has not been modified.
       return false;
-    } else if (collection is List) {
+    }
+
+    if (collection is List) {
       List list = collection;
       for(int index = 0; index < list.length; index++) {
         var item = list[index];
@@ -748,6 +754,7 @@ class _CollectionChangeRecord<V> implements CollectionChangeRecord<V> {
         index++;
       }
     }
+
     _truncate(record);
     _iterable = collection;
     return isDirty;
@@ -1186,5 +1193,7 @@ class DuplicateMap {
     return record;
   }
 
-  void clear() => map.clear();
+  void clear() {
+    map.clear();
+  }
 }
