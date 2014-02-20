@@ -253,6 +253,6 @@ class AvgStopwatch extends Stopwatch {
   int increment(int count) => _count += count;
 
   double get ratePerMs => elapsedMicroseconds == 0
-      ? 0
-      : _count / elapsedMicroseconds * 1000;
+      ? 0.0
+      : _count / elapsedMicroseconds * 1000.0;
 }
