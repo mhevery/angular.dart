@@ -161,6 +161,9 @@ class Scope {
   Scope _childHead, _childTail, _next, _prev;
   _Streams _streams;
 
+  /// Do not use. Exposes internal state for testing.
+  bool get hasOwnStreams => _streams != null  && _streams._scope == this;
+
   Scope(Object this.context, this.rootScope, this._parentScope,
         this._readWriteGroup, this._readOnlyGroup);
 
@@ -595,13 +598,17 @@ class _Streams {
   static void _forceNewScopeStream(scope, _exceptionHandler) {
     _Streams streams = scope._streams;
     Scope scopeCursor = scope;
+    bool splitMode = false;
     while(scopeCursor != null) {
       _Streams cursorStreams = scopeCursor._streams;
       var hasStream = cursorStreams != null;
       var hasOwnStream = hasStream && cursorStreams._scope == scopeCursor;
       if (hasOwnStream) return;
 
-      if (streams == null || (hasStream && !hasOwnStream)) {
+      if (!splitMode && (streams == null || (hasStream && !hasOwnStream))) {
+        if (hasStream && !hasOwnStream) {
+          splitMode = true;
+        }
         streams = new _Streams(scopeCursor, _exceptionHandler, cursorStreams);
       }
       scopeCursor._streams = streams;
