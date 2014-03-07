@@ -9,12 +9,13 @@ import 'package:angular/core/parser/syntax.dart' show defaultFilterMap;
 
 import 'package:angular/core/parser/eval.dart';
 import 'package:angular/core/parser/utils.dart' show EvalError;
+import 'package:angular/utils.dart';
 
 @NgInjectableService()
-class ClosureMap {
-  Getter lookupGetter(String name) => null;
-  Setter lookupSetter(String name) => null;
-  Function lookupFunction(String name, int arity) => null;
+abstract class ClosureMap {
+  Getter lookupGetter(String name);
+  Setter lookupSetter(String name);
+  MethodClosure lookupFunction(String name, int arity);
 }
 
 @NgInjectableService()
@@ -107,54 +108,41 @@ class DynamicParserBackend extends ParserBackend {
 
 
   Expression newAccessScope(name) {
-    Getter getter = _closures.lookupGetter(name);
-    Setter setter = _closures.lookupSetter(name);
-    if (getter != null && setter != null) {
-      return new AccessScopeFast(name, getter, setter);
+    Getter getter;
+    Setter setter;
+    if (name == 'this') {
+      getter = (o) => o;
     } else {
-      return new AccessScope(name);
+      _assertNotReserved(name);
+      getter = _closures.lookupGetter(name);
+      setter = _closures.lookupSetter(name);
     }
+    return new AccessScopeFast(name, getter, setter);
   }
 
   Expression newAccessMember(object, name) {
+    _assertNotReserved(name);
     Getter getter = _closures.lookupGetter(name);
     Setter setter = _closures.lookupSetter(name);
-    if (getter != null && setter != null) {
-      return new AccessMemberFast(object, name, getter, setter);
-    } else {
-      return new AccessMember(object, name);
-    }
+    return new AccessMemberFast(object, name, getter, setter);
   }
 
   Expression newCallScope(name, arguments) {
-    Function constructor = _computeCallConstructor(
-        _callScopeConstructors, name, arguments.length);
-    return (constructor != null)
-        ? constructor(name, arguments, _closures)
-        : new CallScope(name, arguments);
+    _assertNotReserved(name);
+    MethodClosure function = _closures.lookupFunction(name, arguments.length);
+    return new CallScope(name, function, arguments);
   }
 
   Expression newCallMember(object, name, arguments) {
-    Function constructor = _computeCallConstructor(
-        _callMemberConstructors, name, arguments.length);
-    return (constructor != null)
-        ? constructor(object, name, arguments, _closures)
-        : new CallMember(object, name, arguments);
+    _assertNotReserved(name);
+    MethodClosure function = _closures.lookupFunction(name, arguments.length);
+    return new CallMember(object, function, name, arguments);
   }
 
-  Function _computeCallConstructor(Map constructors, String name, int arity) {
-    Function function = _closures.lookupFunction(name, arity);
-    return (function == null) ? null : constructors[arity];
+  _assertNotReserved(name) {
+    if (isReservedWord(name)) {
+      throw "Identifier '$name' is a reserved word.";
+    }
   }
-
-  static final Map<int, Function> _callScopeConstructors = {
-      0: (n, a, c) => new CallScopeFast0(n, a, c.lookupFunction(n, 0)),
-      1: (n, a, c) => new CallScopeFast1(n, a, c.lookupFunction(n, 1)),
-  };
-
-  static final Map<int, Function> _callMemberConstructors = {
-      0: (o, n, a, c) => new CallMemberFast0(o, n, a, c.lookupFunction(n, 0)),
-      1: (o, n, a, c) => new CallMemberFast1(o, n, a, c.lookupFunction(n, 1)),
-  };
 }
 

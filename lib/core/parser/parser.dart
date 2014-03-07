@@ -4,14 +4,13 @@ export 'package:angular/core/parser/syntax.dart'
    show Visitor, Expression, BoundExpression;
 export 'package:angular/core/parser/dynamic_parser.dart'
    show DynamicParser, DynamicParserBackend, ClosureMap;
-export 'package:angular/core/parser/static_parser.dart'
-    show StaticParser, StaticParserFunctions;
 
 typedef LocalsWrapper(context, locals);
 typedef Getter(self);
 typedef Setter(self, value);
 typedef BoundGetter([locals]);
 typedef BoundSetter(value, [locals]);
+typedef MethodClosure(obj, List args);
 
 /// Placeholder for DI. The parser you are looking for is [DynamicParser].
 abstract class Parser<T> {

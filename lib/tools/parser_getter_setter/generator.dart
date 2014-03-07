@@ -84,14 +84,13 @@ class StaticClosureMap extends ClosureMap {
 
     var maxArity = arities.keys.reduce((x, y) => max(x, y));
 
-    var maps = new Iterable.generate(maxArity, (arity) {
+    var maps = new Iterable.generate(maxArity + 1, (arity) {
       var names = arities[arity];
       if (names == null) {
         return '{\n    }';
       } else {
-        var args = new List.generate(arity, (e) => "a$e").join(',');
-        var p = args.isEmpty ? '' : ', $args';
-        var lines = names.map((name) => 'r"$name": (o$p) => o.$name($args)');
+        var args = new List.generate(arity, (e) => "a[$e]").join(',');
+        var lines = names.map((name) => 'r"$name": (o, a) => o.$name($args)');
         return '{\n    ${lines.join(",\n    ")}\n  }';
       }
     });

@@ -230,6 +230,12 @@ abstract class RemovedItem<V> extends CollectionChangeItem<V> {
   RemovedItem<V> get nextRemovedItem;
 }
 
+typedef FieldGetter(object);
+
+abstract class FieldGetterFactory {
+  FieldGetter call(Object object, String name);
+}
+
 class AvgStopwatch extends Stopwatch {
   int _count = 0;
 

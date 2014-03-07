@@ -3,6 +3,7 @@ library dirty_chekcing_change_detector_spec;
 import '../_specs.dart';
 import 'package:angular/change_detection/change_detection.dart';
 import 'package:angular/change_detection/dirty_checking_change_detector.dart';
+import 'package:angular/change_detection/dirty_checking_change_detector_static.dart';
 import 'dart:collection';
 
 void main() {
@@ -10,9 +11,10 @@ void main() {
     DirtyCheckingChangeDetector<String> detector;
 
     beforeEach(() {
-      GetterCache getterCache = new GetterCache({
+      FieldGetterFactory getterCache = new StaticFieldGetterFactory({
         "first": (o) => o.first,
-        "age": (o) => o.age
+        "age": (o) => o.age,
+        "last": (o) => o.last
       });
       detector = new DirtyCheckingChangeDetector<String>(getterCache);
     });

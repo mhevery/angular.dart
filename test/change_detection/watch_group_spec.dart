@@ -3,6 +3,7 @@ library watch_group_spec;
 import '../_specs.dart';
 import 'package:angular/change_detection/watch_group.dart';
 import 'package:angular/change_detection/dirty_checking_change_detector.dart';
+import 'package:angular/change_detection/dirty_checking_change_detector_dynamic.dart';
 import 'dirty_checking_change_detector_spec.dart' hide main;
 
 void main() {
@@ -30,8 +31,9 @@ void main() {
 
     beforeEach(inject((Logger _logger) {
       context = {};
-      changeDetector = new DirtyCheckingChangeDetector(new GetterCache({}));
-      watchGrp = new RootWatchGroup(changeDetector, context);
+      var getterFactory = new DynamicFieldGetterFactory();
+      changeDetector = new DirtyCheckingChangeDetector(getterFactory);
+      watchGrp = new RootWatchGroup(getterFactory, changeDetector, context);
       logger = _logger;
     }));
 
