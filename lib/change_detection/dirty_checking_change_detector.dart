@@ -1,18 +1,7 @@
 library dirty_checking_change_detector;
 
-import 'dart:mirrors';
 import 'dart:collection';
 import 'package:angular/change_detection/change_detection.dart';
-
-typedef FieldGetter(object);
-
-class GetterCache {
-  final Map<String, FieldGetter> _map;
-
-  GetterCache(this._map);
-
-  FieldGetter call(String name) => _map[name];
-}
 
 /**
  * [DirtyCheckingChangeDetector] determines which object properties have changed
@@ -47,7 +36,7 @@ class DirtyCheckingChangeDetectorGroup<H> implements ChangeDetectorGroup<H> {
    */
   final DirtyCheckingRecord _marker = new DirtyCheckingRecord.marker();
 
-  final GetterCache _getterCache;
+  final FieldGetterFactory _fieldGetterFactory;
 
   /**
    * All records for group are kept together and are denoted by head/tail.
@@ -85,7 +74,7 @@ class DirtyCheckingChangeDetectorGroup<H> implements ChangeDetectorGroup<H> {
    */
   DirtyCheckingChangeDetectorGroup _parent, _childHead, _childTail, _prev, _next;
 
-  DirtyCheckingChangeDetectorGroup(this._parent, this._getterCache) {
+  DirtyCheckingChangeDetectorGroup(this._parent, this._fieldGetterFactory) {
     // we need to insert the marker record at the beginning.
     if (_parent == null) {
       _recordHead = _marker;
@@ -116,9 +105,8 @@ class DirtyCheckingChangeDetectorGroup<H> implements ChangeDetectorGroup<H> {
 
   WatchRecord<H> watch(Object object, String field, H handler) {
     assert(_root != null); // prove that we are not deleted connected;
-    var getter = field == null ? null : _getterCache(field);
-    return _recordAdd(new DirtyCheckingRecord(this, object, field, getter,
-        handler));
+    return _recordAdd(new DirtyCheckingRecord(this, _fieldGetterFactory,
+                                              handler, field, object));
   }
 
   /**
@@ -126,7 +114,7 @@ class DirtyCheckingChangeDetectorGroup<H> implements ChangeDetectorGroup<H> {
    */
   DirtyCheckingChangeDetectorGroup<H> newGroup() {
     assert(_root._assertRecordsOk());
-    var child = new DirtyCheckingChangeDetectorGroup(this, _getterCache);
+    var child = new DirtyCheckingChangeDetectorGroup(this, _fieldGetterFactory);
     if (_childHead == null) {
       _childHead = _childTail = child;
     } else {
@@ -250,7 +238,8 @@ class DirtyCheckingChangeDetector<H> extends DirtyCheckingChangeDetectorGroup<H>
 
   final DirtyCheckingRecord _fakeHead = new DirtyCheckingRecord.marker();
 
-  DirtyCheckingChangeDetector(GetterCache getterCache): super(null, getterCache);
+  DirtyCheckingChangeDetector(FieldGetterFactory fieldGetterFactory)
+      : super(null, fieldGetterFactory);
 
   DirtyCheckingChangeDetector get _root => this;
 
@@ -349,19 +338,17 @@ class _ChangeIterator<H> implements Iterator<Record<H>>{
  */
 class DirtyCheckingRecord<H> implements Record<H>, WatchRecord<H> {
   static const List<String> _MODE_NAMES =
-      const ['MARKER', 'IDENT', 'REFLECT', 'GETTER', 'MAP[]', 'ITERABLE', 'MAP'];
+      const ['MARKER', 'IDENT', 'GETTER', 'MAP[]', 'ITERABLE', 'MAP'];
   static const int _MODE_MARKER_ = 0;
   static const int _MODE_IDENTITY_ = 1;
-  static const int _MODE_REFLECT_ = 2;
-  static const int _MODE_GETTER_ = 3;
-  static const int _MODE_MAP_FIELD_ = 4;
-  static const int _MODE_ITERABLE_ = 5;
-  static const int _MODE_MAP_ = 6;
+  static const int _MODE_GETTER_ = 2;
+  static const int _MODE_MAP_FIELD_ = 3;
+  static const int _MODE_ITERABLE_ = 4;
+  static const int _MODE_MAP_ = 5;
 
   final DirtyCheckingChangeDetectorGroup _group;
+  final FieldGetterFactory _fieldGetterFactory;
   final String field;
-  final Symbol _symbol;
-  final FieldGetter _getter;
   final H handler;
 
   int _mode;
@@ -372,20 +359,18 @@ class DirtyCheckingRecord<H> implements Record<H>, WatchRecord<H> {
   DirtyCheckingRecord<H> _prevRecord;
   Record<H> _nextChange;
   var _object;
-  InstanceMirror _instanceMirror;
+  FieldGetter _getter;
 
-  DirtyCheckingRecord(this._group, object, fieldName, this._getter, this.handler)
-      : field = fieldName,
-        _symbol = fieldName == null ? null : new Symbol(fieldName)
-  {
+  DirtyCheckingRecord(this._group, this._fieldGetterFactory, this.handler,
+                      this.field, object) {
     this.object = object;
   }
 
   DirtyCheckingRecord.marker()
-      : handler = null,
+      : _group = null,
+        _fieldGetterFactory = null,
+        handler = null,
         field = null,
-        _group = null,
-        _symbol = null,
         _getter = null,
         _mode = _MODE_MARKER_;
 
@@ -400,11 +385,12 @@ class DirtyCheckingRecord<H> implements Record<H>, WatchRecord<H> {
     _object = obj;
     if (obj == null) {
       _mode = _MODE_IDENTITY_;
+      _getter = null;
       return;
     }
 
     if (field == null) {
-      _instanceMirror = null;
+      _getter = null;
       if (obj is Map) {
         if (_mode != _MODE_MAP_) {
           // Last one was collection as well, don't reset state.
@@ -426,13 +412,10 @@ class DirtyCheckingRecord<H> implements Record<H>, WatchRecord<H> {
 
     if (obj is Map) {
       _mode =  _MODE_MAP_FIELD_;
-      _instanceMirror = null;
-    } else if (_getter != null) {
-      _mode = _MODE_GETTER_;
-      _instanceMirror = null;
+      _getter = null;
     } else {
-      _mode = _MODE_REFLECT_;
-      _instanceMirror = reflect(obj);
+      _mode = _MODE_GETTER_;
+      _getter = _fieldGetterFactory.call(obj, field);
     }
   }
 
@@ -442,9 +425,6 @@ class DirtyCheckingRecord<H> implements Record<H>, WatchRecord<H> {
     switch (_mode) {
       case _MODE_MARKER_:
         return false;
-      case _MODE_REFLECT_:
-        current = _instanceMirror.getField(_symbol).reflectee;
-        break;
       case _MODE_GETTER_:
         current = _getter(object);
         break;

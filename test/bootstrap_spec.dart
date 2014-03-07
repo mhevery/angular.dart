@@ -1,6 +1,7 @@
 library bootstrap_spec;
 
 import '_specs.dart';
+import 'package:angular/angular_dynamic.dart';
 
 void main() {
   describe('bootstrap', () {
@@ -8,7 +9,7 @@ void main() {
 
     it('should default to whole page', () {
       body.innerHtml = '<div>{{"works"}}</div>';
-      ngBootstrap();
+      new NgDynamicApp().run();
       expect(body.innerHtml).toEqual('<div>works</div>');
     });
 
@@ -16,7 +17,7 @@ void main() {
       body.setInnerHtml(
           '<div>{{ignor me}}<div ng-app ng-bind="\'works\'"></div></div>',
           treeSanitizer: new NullTreeSanitizer());
-      ngBootstrap();
+      new NgDynamicApp().run();
       expect(body.text).toEqual('{{ignor me}}works');
     });
 
@@ -24,7 +25,7 @@ void main() {
       body.setInnerHtml(
           '<div>{{ignor me}}<div ng-bind="\'works\'"></div></div>',
           treeSanitizer: new NullTreeSanitizer());
-      ngBootstrap(element:body.querySelector('div[ng-bind]'));
+      new NgDynamicApp()..selector('div[ng-bind]')..run();
       expect(body.text).toEqual('{{ignor me}}works');
     });
   });

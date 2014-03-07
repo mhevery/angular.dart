@@ -389,7 +389,7 @@ class ScopeStats {
   }
 
   toString() =>
-    'digest #$_digestLoopNo:'
+    '${_digestLoopNo == 1 ? 'digest' : '      '} #$_digestLoopNo:'
     'Field: ${_stat(digestFieldStopwatch)} '
     'Eval: ${_stat(digestEvalStopwatch)} '
     'Process: ${_stat(digestProcessStopwatch)}';
@@ -417,12 +417,14 @@ class RootScope extends Scope {
   String _state;
 
   RootScope(Object context, this._astParser, this._parser,
-            GetterCache cacheGetter, FilterMap filterMap,
+            FieldGetterFactory fieldGetterFactory, FilterMap filterMap,
             this._exceptionHandler, this._ttl, this._zone,
             this._scopeStats)
       : super(context, null, null,
-            new RootWatchGroup(new DirtyCheckingChangeDetector(cacheGetter), context),
-            new RootWatchGroup(new DirtyCheckingChangeDetector(cacheGetter), context))
+            new RootWatchGroup(fieldGetterFactory,
+                new DirtyCheckingChangeDetector(fieldGetterFactory), context),
+            new RootWatchGroup(fieldGetterFactory,
+                new DirtyCheckingChangeDetector(fieldGetterFactory), context))
   {
     _zone.onTurnDone = apply;
     _zone.onError = (e, s, ls) => _exceptionHandler(e, s);

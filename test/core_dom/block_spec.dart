@@ -1,6 +1,7 @@
 library block_spec;
 
 import '../_specs.dart';
+import 'package:angular/angular_dynamic.dart';
 
 class Log {
   List<String> log = <String>[];
@@ -193,8 +194,9 @@ main() {
           ..type(AFilter)
           ..type(ADirective);
 
-        Injector rootInjector =
-            new DynamicInjector(modules: [new AngularModule(), rootModule]);
+        Injector rootInjector = new NgDynamicApp()
+            .addModule(rootModule)
+            .createInjector();
         Log log = rootInjector.get(Log);
         Scope rootScope = rootInjector.get(Scope);
 

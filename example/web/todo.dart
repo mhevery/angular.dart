@@ -1,6 +1,7 @@
 library todo;
 
 import 'package:angular/angular.dart';
+import 'package:angular/angular_dynamic.dart';
 import 'package:angular/playback/playback_http.dart';
 import 'todo.dart';
 
@@ -128,5 +129,5 @@ main() {
     module.type(HttpBackend, implementedBy: PlaybackHttpBackend);
   }
 
-  ngBootstrap(module: module);
+  new NgDynamicApp().addModule(module).run();
 }

@@ -1,6 +1,5 @@
 library angular.watch_group;
 
-import 'dart:mirrors';
 import 'package:angular/change_detection/change_detection.dart';
 
 part 'linked_list.dart';
@@ -206,7 +205,8 @@ class WatchGroup implements _EvalWatchList, _WatchGroupList {
   _EvalWatchRecord _addEvalWatch(AST lhsAST, /* dartbug.com/16401 Function */ fn, String name,
                                  List<AST> argsAST, String expression) {
     _InvokeHandler invokeHandler = new _InvokeHandler(this, expression);
-    var evalWatchRecord = new _EvalWatchRecord(this, invokeHandler, fn, name,
+    var evalWatchRecord = new _EvalWatchRecord(
+        _rootGroup._fieldGetterFactory, this, invokeHandler, fn, name,
         argsAST.length);
     invokeHandler.watchRecord = evalWatchRecord;
 
@@ -339,6 +339,7 @@ class WatchGroup implements _EvalWatchList, _WatchGroupList {
  * [RootWatchGroup]
  */
 class RootWatchGroup extends WatchGroup {
+  final FieldGetterFactory _fieldGetterFactory;
   Watch _dirtyWatchHead, _dirtyWatchTail;
 
   /**
@@ -351,7 +352,9 @@ class RootWatchGroup extends WatchGroup {
   int _removeCount = 0;
 
 
-  RootWatchGroup(ChangeDetector changeDetector, Object context):
+  RootWatchGroup(FieldGetterFactory this._fieldGetterFactory,
+                 ChangeDetector changeDetector,
+                 Object context):
       super._root(changeDetector, context);
 
   RootWatchGroup get _rootGroup => this;
@@ -676,20 +679,19 @@ class _EvalWatchRecord implements WatchRecord<_Handler>, Record<_Handler> {
   WatchGroup watchGrp;
   final _Handler handler;
   final List args;
-  final Symbol symbol;
   final String name;
   int mode;
   /* dartbug.com/16401 Function*/ var fn;
-  InstanceMirror _instanceMirror;
+  FieldGetterFactory _fieldGetterFactory;
   bool dirtyArgs = true;
 
   dynamic currentValue, previousValue, _object;
   _EvalWatchRecord _prevEvalWatch, _nextEvalWatch;
 
-  _EvalWatchRecord(this.watchGrp, this.handler, this.fn, name, int arity)
-      : args = new List(arity),
-        name = name,
-        symbol = name == null ? null : new Symbol(name) {
+  _EvalWatchRecord(this._fieldGetterFactory, this.watchGrp, this.handler,
+                   this.fn, this.name, int arity)
+      : args = new List(arity)
+  {
     if (fn is FunctionApply) {
       mode = _MODE_FUNCTION_APPLY_;
     } else if (fn is Function) {
@@ -701,21 +703,21 @@ class _EvalWatchRecord implements WatchRecord<_Handler>, Record<_Handler> {
 
   _EvalWatchRecord.marker()
       : mode = _MODE_MARKER_,
+        _fieldGetterFactory = null,
         watchGrp = null,
         handler = null,
         args = null,
         fn = null,
-        symbol = null,
         name = null;
 
   _EvalWatchRecord.constant(_Handler handler, dynamic constantValue)
       : mode = _MODE_MARKER_,
+        _fieldGetterFactory = null,
         handler = handler,
         currentValue = constantValue,
         watchGrp = null,
         args = null,
         fn = null,
-        symbol = null,
         name = null;
 
   get field => '()';
@@ -727,7 +729,6 @@ class _EvalWatchRecord implements WatchRecord<_Handler>, Record<_Handler> {
     assert(mode != _MODE_MARKER_);
     assert(mode != _MODE_FUNCTION_);
     assert(mode != _MODE_FUNCTION_APPLY_);
-    assert(symbol != null);
     _object = value;
 
     if (value == null) {
@@ -736,10 +737,21 @@ class _EvalWatchRecord implements WatchRecord<_Handler>, Record<_Handler> {
       if (value is Map) {
         mode =  _MODE_MAP_CLOSURE_;
       } else {
-        _instanceMirror = reflect(value);
-        mode = _hasMethod(_instanceMirror, symbol)
-            ? _MODE_METHOD_
-            : _MODE_FIELD_CLOSURE_;
+        var getter = _fieldGetterFactory.call(value, name);
+        // We need to know if we are referring to method or field which is a
+        // function We can find out by calling it twice and seeing if we get
+        // the same value.
+        var val1 = getter(_object);
+        var val2 = getter(_object);
+        if (identical(val1, val2)) {
+          // It is a field since calling it twice returns same value
+          fn = getter;
+          mode = _MODE_FIELD_CLOSURE_;
+        } else {
+          // It is a method since method closurizes into different instances
+          mode = _MODE_METHOD_;
+          fn = val1;
+        }
       }
     }
   }
@@ -761,7 +773,7 @@ class _EvalWatchRecord implements WatchRecord<_Handler>, Record<_Handler> {
         dirtyArgs = false;
         break;
       case _MODE_FIELD_CLOSURE_:
-        var closure = _instanceMirror.getField(symbol).reflectee;
+        var closure = fn(_object);
         value = closure == null ? null : Function.apply(closure, args);
         break;
       case _MODE_MAP_CLOSURE_:
@@ -769,7 +781,7 @@ class _EvalWatchRecord implements WatchRecord<_Handler>, Record<_Handler> {
         value = closure == null ? null : Function.apply(closure, args);
         break;
       case _MODE_METHOD_:
-        value = _instanceMirror.invoke(symbol, args).reflectee;
+        value = Function.apply(fn, args);
         break;
       default:
         assert(false);
@@ -802,9 +814,5 @@ class _EvalWatchRecord implements WatchRecord<_Handler>, Record<_Handler> {
   String toString() {
     if (mode == _MODE_MARKER_) return 'MARKER[$currentValue]';
     return '${watchGrp.id}:${handler.expression}';
-  }
-
-  static bool _hasMethod(InstanceMirror mirror, Symbol symbol) {
-    return mirror.type.instanceMembers[symbol] is MethodMirror;
   }
 }

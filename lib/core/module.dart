@@ -2,7 +2,6 @@ library angular.core;
 
 import 'dart:async' as async;
 import 'dart:collection';
-import 'dart:mirrors';
 import 'package:intl/intl.dart';
 
 import 'package:di/di.dart';
@@ -43,7 +42,6 @@ class NgCoreModule extends Module {
     type(RootScope);
     factory(Scope, (injector) => injector.get(RootScope));
     value(ScopeStats, new ScopeStats());
-    value(GetterCache, new GetterCache({}));
     value(Object, {}); // RootScope context
     type(AstParser);
     type(NgZone);
