@@ -4,11 +4,15 @@ packages:
   analyzer:
     description: analyzer
     source: hosted
-    version: "0.11.10"
+    version: "0.12.2"
   args:
     description: args
     source: hosted
     version: "0.9.0"
+  barback:
+    description: barback
+    source: hosted
+    version: "0.11.1"
   benchmark_harness:
     description: benchmark_harness
     source: hosted
@@ -17,13 +21,20 @@ packages:
     description: browser
     source: hosted
     version: "0.9.1"
+  code_transformers:
+    description: code_transformers
+    source: hosted
+    version: "0.0.1-dev.2"
   collection:
     description: collection
     source: hosted
     version: "0.9.1"
   di:
-    description: di
-    source: hosted
+    description:
+      ref: null
+      resolved-ref: "88e0d48101517e1d3bc84f9d38d4a1b619db65aa"
+      url: "https://github.com/angular/di.dart.git"
+    source: git
     version: "0.0.33"
   html5lib:
     description: html5lib
@@ -32,11 +43,15 @@ packages:
   intl:
     description: intl
     source: hosted
-    version: "0.9.6"
+    version: "0.8.10+4"
   logging:
     description: logging
     source: hosted
     version: "0.9.1+1"
+  meta:
+    description: meta
+    source: hosted
+    version: "0.8.8"
   path:
     description: path
     source: hosted

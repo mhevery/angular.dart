@@ -2,17 +2,11 @@ library todo;
 
 import 'package:angular/angular.dart';
 import 'package:angular/playback/playback_http.dart';
+import 'package:angular/auto_modules.dart' as auto;
+import 'package:di/auto_injector.dart';
 import 'todo.dart';
 
 import 'dart:html';
-
-// This annotation allows Dart to shake away any classes
-// not used from Dart code nor listed in another @MirrorsUsed.
-//
-// If you create classes that are referenced from the Angular
-// expressions, you must include a library target in @MirrorsUsed.
-@MirrorsUsed(override: '*')
-import 'dart:mirrors';
 
 class Item {
   String text;
@@ -105,7 +99,9 @@ main() {
   print(window.location.search);
   var module = new Module()
       ..type(TodoController)
-      ..type(PlaybackHttpBackendConfig);
+      ..type(PlaybackHttpBackendConfig)
+      ..install(auto.defaultExpressionModule)
+      ..install(auto.defaultMetadataModule);
 
   // If these is a query in the URL, use the server-backed
   // TodoController.  Otherwise, use the stored-data controller.
@@ -128,5 +124,6 @@ main() {
     module.type(HttpBackend, implementedBy: PlaybackHttpBackend);
   }
 
-  ngBootstrap(module: module);
+  ngBootstrap(module: module,
+      injectorFactory: (modules) => defaultInjector(modules: modules));
 }
