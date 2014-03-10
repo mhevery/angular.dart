@@ -5,3 +5,12 @@ dependencies:
     path: ../
   browser: any
   unittest: any
+
+transformers:
+- angular:
+    dart_entry: web/todo.dart
+    html_files: web/todo.html
+
+dependency_overrides:
+  di:
+    git: https://github.com/angular/di.dart.git

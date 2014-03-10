@@ -30,9 +30,12 @@ packages:
     source: hosted
     version: "0.9.1"
   di:
-    description: di
-    source: hosted
-    version: "0.0.34"
+    description:
+      ref: null
+      resolved-ref: "88e0d48101517e1d3bc84f9d38d4a1b619db65aa"
+      url: "https://github.com/angular/di.dart.git"
+    source: git
+    version: "0.0.33"
   html5lib:
     description: html5lib
     source: hosted
