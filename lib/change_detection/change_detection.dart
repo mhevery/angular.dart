@@ -232,6 +232,8 @@ abstract class RemovedItem<V> extends CollectionChangeItem<V> {
 
 typedef FieldGetter(object);
 
+typedef FieldSetter(object, value);
+
 abstract class FieldGetterFactory {
   FieldGetter call(Object object, String name);
 }
