@@ -3,6 +3,7 @@ library angular.transformer;
 import 'dart:io';
 import 'package:angular/tools/transformer/expression_generator.dart';
 import 'package:angular/tools/transformer/metadata_generator.dart';
+import 'package:angular/tools/transformer/static_angular_generator.dart';
 import 'package:angular/tools/transformer/options.dart';
 import 'package:barback/barback.dart';
 import 'package:code_transformers/resolver.dart';
@@ -38,8 +39,11 @@ TransformOptions _parseSettings(Map args) {
       'angular.core.NgFilter'];
   annotations.addAll(_readStringListValue(args, 'injectable_annotations'));
 
-  var injectedTypes = ['perf_api.Profiler',
-      'angular.core.parser.static_parser.StaticParser'];
+  var injectedTypes = [
+      'perf_api.Profiler',
+      'angular.core.RootScope',
+      'angular.core.AstParser',
+      'angular.core.dom.NgAnimate'];
   injectedTypes.addAll(_readStringListValue(args, 'injected_types'));
 
   var sdkDir = _readStringValue(args, 'dart_sdk', required: false);
@@ -48,16 +52,16 @@ TransformOptions _parseSettings(Map args) {
     sdkDir =  path.dirname(path.dirname(Platform.executable));
   }
 
-  var dartEntry = _readStringValue(args, 'dart_entry');
+  var dartEntries = _readStringListValue(args, 'dart_entries');
 
   var diOptions = new di.TransformOptions(
-      dartEntries: [dartEntry],
+      dartEntries: dartEntries,
       injectableAnnotations: annotations,
       injectedTypes: injectedTypes,
       sdkDirectory: sdkDir);
 
   return new TransformOptions(
-      dartEntry: dartEntry,
+      dartEntries: dartEntries,
       htmlFiles: _readStringListValue(args, 'html_files'),
       sdkDirectory: sdkDir,
       templateUriRewrites: _readStringMapValue(args, 'template_uri_rewrites'),
@@ -125,5 +129,6 @@ List<List<Transformer>> _createPhases(TransformOptions options) {
     [new ExpressionGenerator(options, resolvers)],
     [new di.InjectorGenerator(options.diOptions, resolvers)],
     [new MetadataGenerator(options, resolvers)],
+    [new StaticAngularGenerator(options, resolvers)],
   ];
 }

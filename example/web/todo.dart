@@ -3,7 +3,6 @@ library todo;
 import 'package:angular/angular.dart';
 import 'package:angular/angular_dynamic.dart';
 import 'package:angular/playback/playback_http.dart';
-import 'todo.dart';
 
 import 'dart:html';
 
@@ -32,6 +31,7 @@ abstract class ServerController {
 
 
 // An implementation of ServerController that does nothing.
+@NgInjectableService()
 class NoServerController implements ServerController {
   init(TodoController todo) { }
 }
@@ -39,6 +39,7 @@ class NoServerController implements ServerController {
 
 // An implementation of ServerController that fetches items from
 // the server over HTTP.
+@NgInjectableService()
 class HttpServerController implements ServerController {
   final Http _http;
   HttpServerController(this._http);

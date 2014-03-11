@@ -11,9 +11,9 @@ import 'package:code_transformers/tests.dart' as tests;
 import '../../jasmine_syntax.dart';
 
 main() {
-  describe('metadata_generator', () {
+  describe('MetadataGenerator', () {
     var options = new TransformOptions(
-        dartEntry: 'web/main.dart',
+        dartEntries: ['web/main.dart'],
         sdkDirectory: dartSdkDirectory);
 
     var resolvers = new Resolvers(dartSdkDirectory);
@@ -25,9 +25,8 @@ main() {
     it('should extract member metadata', () {
       return generates(phases,
           inputs: {
-            'a|web/main.dart': '''import 'package:a/a.dart'; ''',
-            'angular|lib/angular.dart': PACKAGE_ANGULAR,
-            'a|lib/a.dart': '''
+            'angular|lib/angular.dart': libAngular,
+            'a|web/main.dart': '''
                 import 'package:angular/angular.dart';
 
                 @NgDirective(selector: r'[*=/{{.*}}/]')
@@ -46,47 +45,26 @@ main() {
                 '''
           },
           imports: [
-            'import \'package:a/a.dart\' as import_0;',
+            'import \'main.dart\' as import_0;',
             'import \'package:angular/angular.dart\' as import_1;',
           ],
           classes: {
             'import_0.Engine': [
-              'const import_1.NgDirective(selector: \'[*=/{{.*}}/]\')',
+              'const import_1.NgDirective(selector: \'[*=/{{.*}}/]\', map: const {'
+                '\'another-expression\': \'=>anotherExpression\', '
+                '\'callback\': \'&callback\', '
+                '\'two-way-stuff\': \'<=>twoWayStuff\''
+                '})',
               'proxy',
             ]
-          },
-          classMembers: {
-            'import_0.Engine': {
-              'anotherExpression': 'const import_1.NgOneWay(\'another-expression\')',
-              'callback': 'const import_1.NgCallback(\'callback\')',
-              'twoWayStuff': 'const import_1.NgTwoWay(\'two-way-stuff\')',
-            }
           });
-    });
-
-    it('should warn on un-importable files', () {
-      return generates(phases,
-          inputs: {
-            'a|web/main.dart': '''import 'a.dart'; ''',
-            'angular|lib/angular.dart': PACKAGE_ANGULAR,
-            'a|web/a.dart': '''
-                import 'package:angular/angular.dart';
-
-                @NgDirective(selector: r'[*=/{{.*}}/]')
-                class Engine {}
-                '''
-          },
-          messages: ['warning: Dropping annotations for Engine because the '
-              'containing file cannot be imported (must be in a lib folder). '
-              '(a.dart 2 16)']);
     });
 
     it('should warn on multiple annotations', () {
       return generates(phases,
           inputs: {
-            'a|web/main.dart': '''import 'package:a/a.dart'; ''',
-            'angular|lib/angular.dart': PACKAGE_ANGULAR,
-            'a|lib/a.dart': '''
+            'angular|lib/angular.dart': libAngular,
+            'a|web/main.dart': '''
                 import 'package:angular/angular.dart';
 
                 class Engine {
@@ -97,15 +75,74 @@ main() {
                 '''
           },
           messages: ['warning: callback can only have one annotation. '
-              '(package:a/a.dart 3 18)']);
+              '(main.dart 3 18)']);
+    });
+
+    it('should warn on duplicated annotations', () {
+      return generates(phases,
+          inputs: {
+            'angular|lib/angular.dart': libAngular,
+            'a|web/main.dart': '''
+                import 'package:angular/angular.dart';
+
+                @NgDirective(map: {'another-expression': '=>anotherExpression'})
+                class Engine {
+                  @NgOneWay('another-expression')
+                  set anotherExpression(Function) {}
+                }
+                '''
+          },
+          imports: [
+            'import \'main.dart\' as import_0;',
+            'import \'package:angular/angular.dart\' as import_1;',
+          ],
+          classes: {
+            'import_0.Engine': [
+              'const import_1.NgDirective(map: const {'
+                '\'another-expression\': \'=>anotherExpression\'})',
+            ]
+          },
+          messages: ['warning: Directive @NgOneWay(\'another-expression\') '
+              'already contains an entry for \'another-expression\' '
+              '(main.dart 2 16)'
+          ]);
+    });
+
+    it('should merge member annotations', () {
+      return generates(phases,
+          inputs: {
+            'angular|lib/angular.dart': libAngular,
+            'a|web/main.dart': '''
+                import 'package:angular/angular.dart';
+
+                @NgDirective(map: {'another-expression': '=>anotherExpression'})
+                class Engine {
+                  set anotherExpression(Function) {}
+
+                  set twoWayStuff(String abc) {}
+                  @NgTwoWay('two-way-stuff')
+                  String get twoWayStuff => null;
+                }
+                '''
+          },
+          imports: [
+            'import \'main.dart\' as import_0;',
+            'import \'package:angular/angular.dart\' as import_1;',
+          ],
+          classes: {
+            'import_0.Engine': [
+              'const import_1.NgDirective(map: const {'
+                '\'another-expression\': \'=>anotherExpression\', '
+                '\'two-way-stuff\': \'<=>twoWayStuff\'})',
+            ]
+          });
     });
 
     it('should warn on multiple annotations (across getter/setter)', () {
       return generates(phases,
           inputs: {
-            'a|web/main.dart': '''import 'package:a/a.dart'; ''',
-            'angular|lib/angular.dart': PACKAGE_ANGULAR,
-            'a|lib/a.dart': '''
+            'angular|lib/angular.dart': libAngular,
+            'a|web/main.dart': '''
                 import 'package:angular/angular.dart';
 
                 class Engine {
@@ -118,15 +155,14 @@ main() {
                 '''
           },
           messages: ['warning: callback can only have one annotation. '
-              '(package:a/a.dart 3 18)']);
+              '(main.dart 3 18)']);
     });
 
     it('should extract map arguments', () {
       return generates(phases,
           inputs: {
-            'a|web/main.dart': '''import 'package:a/a.dart'; ''',
-            'angular|lib/angular.dart': PACKAGE_ANGULAR,
-            'a|lib/a.dart': '''
+            'angular|lib/angular.dart': libAngular,
+            'a|web/main.dart': '''
                 import 'package:angular/angular.dart';
 
                 @NgDirective(map: const {'ng-value': '&ngValue', 'key': 'value'})
@@ -134,7 +170,7 @@ main() {
                 '''
           },
           imports: [
-            'import \'package:a/a.dart\' as import_0;',
+            'import \'main.dart\' as import_0;',
             'import \'package:angular/angular.dart\' as import_1;',
           ],
           classes: {
@@ -147,9 +183,8 @@ main() {
     it('should extract list arguments', () {
       return generates(phases,
           inputs: {
-            'a|web/main.dart': '''import 'package:a/a.dart'; ''',
-            'angular|lib/angular.dart': PACKAGE_ANGULAR,
-            'a|lib/a.dart': '''
+            'angular|lib/angular.dart': libAngular,
+            'a|web/main.dart': '''
                 import 'package:angular/angular.dart';
 
                 @NgDirective(publishTypes: const [TextChangeListener])
@@ -157,7 +192,7 @@ main() {
                 '''
           },
           imports: [
-            'import \'package:a/a.dart\' as import_0;',
+            'import \'main.dart\' as import_0;',
             'import \'package:angular/angular.dart\' as import_1;',
           ],
           classes: {
@@ -170,9 +205,8 @@ main() {
     it('should extract primitive literals', () {
       return generates(phases,
           inputs: {
-            'a|web/main.dart': '''import 'package:a/a.dart'; ''',
-            'angular|lib/angular.dart': PACKAGE_ANGULAR,
-            'a|lib/a.dart': '''
+            'angular|lib/angular.dart': libAngular,
+            'a|web/main.dart': '''
                 import 'package:angular/angular.dart';
 
                 @NgOneWay(true)
@@ -183,7 +217,7 @@ main() {
                 '''
           },
           imports: [
-            'import \'package:a/a.dart\' as import_0;',
+            'import \'main.dart\' as import_0;',
             'import \'package:angular/angular.dart\' as import_1;',
           ],
           classes: {
@@ -199,9 +233,8 @@ main() {
     it('should skip and warn on unserializable annotations', () {
       return generates(phases,
           inputs: {
-            'a|web/main.dart': '''import 'package:a/a.dart'; ''',
-            'angular|lib/angular.dart': PACKAGE_ANGULAR,
-            'a|lib/a.dart': '''
+            'angular|lib/angular.dart': libAngular,
+            'a|web/main.dart': '''
                 import 'package:angular/angular.dart';
 
                 @Foo
@@ -212,7 +245,7 @@ main() {
                 '''
           },
           imports: [
-            'import \'package:a/a.dart\' as import_0;',
+            'import \'main.dart\' as import_0;',
             'import \'package:angular/angular.dart\' as import_1;',
           ],
           classes: {
@@ -224,20 +257,17 @@ main() {
             ]
           },
           messages: [
-            'warning: Unable to serialize annotation @Foo. '
-              '(package:a/a.dart 2 16)',
+            'warning: Unable to serialize annotation @Foo. (main.dart 2 16)',
             'warning: Unable to serialize annotation '
-              '@NgDirective(publishTypes: const [Foo]). '
-              '(package:a/a.dart 5 16)',
+                '@NgDirective(publishTypes: const [Foo]). (main.dart 5 16)',
           ]);
     });
 
     it('should extract types across libs', () {
       return generates(phases,
           inputs: {
-            'a|web/main.dart': '''import 'package:a/a.dart'; ''',
-            'angular|lib/angular.dart': PACKAGE_ANGULAR,
-            'a|lib/a.dart': '''
+            'angular|lib/angular.dart': libAngular,
+            'a|web/main.dart': '''
                 import 'package:angular/angular.dart';
                 import 'package:a/b.dart';
 
@@ -249,7 +279,7 @@ main() {
                 ''',
           },
           imports: [
-            'import \'package:a/a.dart\' as import_0;',
+            'import \'main.dart\' as import_0;',
             'import \'package:angular/angular.dart\' as import_1;',
             'import \'package:a/b.dart\' as import_2;',
           ],
@@ -263,9 +293,8 @@ main() {
     it('should not gather non-member annotations', () {
       return generates(phases,
           inputs: {
-            'a|web/main.dart': '''import 'package:a/a.dart'; ''',
-            'angular|lib/angular.dart': PACKAGE_ANGULAR,
-            'a|lib/a.dart': '''
+            'angular|lib/angular.dart': libAngular,
+            'a|web/main.dart': '''
                 import 'package:angular/angular.dart';
 
                 class Engine {
@@ -281,9 +310,8 @@ main() {
     it('properly escapes strings', () {
       return generates(phases,
           inputs: {
-            'a|web/main.dart': '''import 'package:a/a.dart'; ''',
-            'angular|lib/angular.dart': PACKAGE_ANGULAR,
-            'a|lib/a.dart': r'''
+            'angular|lib/angular.dart': libAngular,
+            'a|web/main.dart': r'''
                 import 'package:angular/angular.dart';
 
                 @NgOneWay('foo\' \\')
@@ -292,7 +320,7 @@ main() {
                 ''',
           },
           imports: [
-            'import \'package:a/a.dart\' as import_0;',
+            'import \'main.dart\' as import_0;',
             'import \'package:angular/angular.dart\' as import_1;',
           ],
           classes: {
@@ -305,9 +333,8 @@ main() {
     it('should reference static and global properties', () {
       return generates(phases,
           inputs: {
-            'a|web/main.dart': '''import 'package:a/a.dart'; ''',
-            'angular|lib/angular.dart': PACKAGE_ANGULAR,
-            'a|lib/a.dart': '''
+            'angular|lib/angular.dart': libAngular,
+            'a|web/main.dart': '''
                 import 'package:angular/angular.dart';
 
                 @NgDirective(visibility: NgDirective.CHILDREN_VISIBILITY)
@@ -318,7 +345,7 @@ main() {
                 ''',
           },
           imports: [
-            'import \'package:a/a.dart\' as import_0;',
+            'import \'main.dart\' as import_0;',
             'import \'package:angular/angular.dart\' as import_1;',
           ],
           classes: {
@@ -332,9 +359,8 @@ main() {
     it('should not extract private annotations', () {
       return generates(phases,
           inputs: {
-            'a|web/main.dart': '''import 'package:a/a.dart'; ''',
-            'angular|lib/angular.dart': PACKAGE_ANGULAR,
-            'a|lib/a.dart': '''
+            'angular|lib/angular.dart': libAngular,
+            'a|web/main.dart': '''
                 import 'package:angular/angular.dart';
 
                 @_Foo()
@@ -349,18 +375,16 @@ main() {
                 ''',
           },
           messages: [
-            'warning: Annotation @_Foo() is not public. '
-              '(package:a/a.dart 2 16)',
-            'warning: Annotation @_foo is not public. (package:a/a.dart 2 16)',
+            'warning: Annotation @_Foo() is not public. (main.dart 2 16)',
+            'warning: Annotation @_foo is not public. (main.dart 2 16)',
           ]);
     });
 
     it('supports named constructors', () {
       return generates(phases,
           inputs: {
-            'a|web/main.dart': '''import 'package:a/a.dart'; ''',
-            'angular|lib/angular.dart': PACKAGE_ANGULAR,
-            'a|lib/a.dart': '''
+            'angular|lib/angular.dart': libAngular,
+            'a|web/main.dart': '''
                 import 'package:angular/angular.dart';
 
                 @Foo.bar()
@@ -375,7 +399,7 @@ main() {
                 ''',
           },
           imports: [
-            'import \'package:a/a.dart\' as import_0;',
+            'import \'main.dart\' as import_0;',
           ],
           classes: {
             'import_0.Engine': [
@@ -384,7 +408,7 @@ main() {
           },
           messages: [
             'warning: Annotation @Foo._private() is not public. '
-                '(package:a/a.dart 2 16)',
+                '(main.dart 2 16)',
           ]);
     });
   });
@@ -393,57 +417,46 @@ main() {
 Future generates(List<List<Transformer>> phases,
     {Map<String, String> inputs, Iterable<String> imports: const [],
     Map classes: const {},
-    Map classMembers: const {},
     Iterable<String> messages: const []}) {
 
   var buffer = new StringBuffer();
-  buffer.write('$HEADER\n');
+  buffer.write('$header\n');
   for (var i in imports) {
     buffer.write('$i\n');
   }
-  buffer.write('$BOILER_PLATE\n');
+  buffer.write('$boilerPlate\n');
   for (var className in classes.keys) {
-    buffer.write('  $className: [\n');
+    buffer.write('  $className: const [\n');
     for (var annotation in classes[className]) {
       buffer.write('    $annotation,\n');
     }
     buffer.write('  ],\n');
   }
-  buffer.write('$MEMBER_PREAMBLE\n');
-  for (var className in classMembers.keys) {
-    buffer.write('  $className: {\n');
-    var members = classMembers[className];
-    for (var memberName in members.keys) {
-      buffer.write('    \'$memberName\': ${members[memberName]},\n');
-    }
-    buffer.write('  },\n');
-  }
 
-  buffer.write('$FOOTER\n');
+  buffer.write('$footer\n');
 
   return tests.applyTransformers(phases,
       inputs: inputs,
       results: {
-        'a|lib/generated_metadata.dart': buffer.toString()
+        'a|web/main_static_metadata.dart': buffer.toString()
       },
       messages: messages);
 }
 
-const String HEADER = '''
+const String header = '''
 library a.web.main.generated_metadata;
 
-import 'package:angular/angular.dart' show AttrFieldAnnotation, FieldMetadataExtractor, MetadataExtractor;
+import 'package:angular/angular.dart' show MetadataExtractor;
 import 'package:di/di.dart' show Module;
 ''';
 
-const String BOILER_PLATE = '''
+const String boilerPlate = '''
 Module get metadataModule => new Module()
-    ..value(MetadataExtractor, new _StaticMetadataExtractor())
-    ..value(FieldMetadataExtractor, new _StaticFieldMetadataExtractor());
+    ..value(MetadataExtractor, new _StaticMetadataExtractor());
 
 class _StaticMetadataExtractor implements MetadataExtractor {
   Iterable call(Type type) {
-    var annotations = _classAnnotations[type];
+    var annotations = typeAnnotations[type];
     if (annotations != null) {
       return annotations;
     }
@@ -451,32 +464,21 @@ class _StaticMetadataExtractor implements MetadataExtractor {
   }
 }
 
-class _StaticFieldMetadataExtractor implements FieldMetadataExtractor {
-  Map<String, AttrFieldAnnotation> call(Type type) {
-    var annotations = _memberAnnotations[type];
-    if (annotations != null) {
-      return annotations;
-    }
-    return {};
-  }
-}
+final Map<Type, Object> typeAnnotations = {''';
 
-final Map<Type, Object> _classAnnotations = {''';
-
-const String MEMBER_PREAMBLE = '''
-};
-
-final Map<Type, Map<String, AttrFieldAnnotation>> _memberAnnotations = {''';
-
-const String FOOTER = '''
+const String footer = '''
 };''';
 
 
-const String PACKAGE_ANGULAR = '''
+const String libAngular = '''
 library angular.core;
 
-class NgDirective {
-  const NgDirective({selector, publishTypes, map, visibility});
+class NgAnnotation {
+  NgAnnotation({map: const {}});
+}
+
+class NgDirective extends NgAnnotation {
+  const NgDirective({selector, publishTypes, map, visibility}) : super(map: map);
 
   static const int CHILDREN_VISIBILITY = 1;
 }

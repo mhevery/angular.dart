@@ -3,7 +3,6 @@ library angular.tools.transformer.expression_generator;
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:analyzer/src/generated/element.dart';
-import 'package:angular/core/module.dart';
 import 'package:angular/core/parser/parser.dart';
 import 'package:angular/tools/html_extractor.dart';
 import 'package:angular/tools/parser_getter_setter/generator.dart';
@@ -14,11 +13,7 @@ import 'package:barback/barback.dart';
 import 'package:code_transformers/resolver.dart';
 import 'package:di/di.dart';
 import 'package:di/dynamic_injector.dart';
-import 'package:di/transformer/refactor.dart';
 import 'package:path/path.dart' as path;
-
-
-const String _generatedExpressionFilename = 'generated_static_expressions.dart';
 
 /**
  * Transformer which gathers all expressions from the HTML source files and
@@ -28,7 +23,7 @@ const String _generatedExpressionFilename = 'generated_static_expressions.dart';
  * expressions and modify all references to NG_EXPRESSION_MODULE to refer to
  * the generated expressions.
  */
-class ExpressionGenerator extends ResolverTransformer {
+class ExpressionGenerator extends Transformer with ResolverTransformer {
   final TransformOptions options;
 
   ExpressionGenerator(this.options, Resolvers resolvers) {
@@ -61,16 +56,15 @@ class ExpressionGenerator extends ResolverTransformer {
       injector.get(_ParserGetterSetter).generateParser(
           htmlExtractor.expressions.toList(), outputBuffer);
 
-      var outputId =
-          new AssetId(asset.id.package, 'lib/$_generatedExpressionFilename');
+      var id = transform.primaryInput.id;
+      var outputFilename = '${path.url.basenameWithoutExtension(id.path)}'
+          '_static_expressions.dart';
+      var outputPath = path.url.join(path.url.dirname(id.path), outputFilename);
+      var outputId = new AssetId(id.package, outputPath);
       transform.addOutput(
             new Asset.fromString(outputId, outputBuffer.toString()));
 
-      transformIdentifiers(transform, resolver,
-          identifier: 'angular.auto_modules.defaultExpressionModule',
-          replacement: 'expressionModule',
-          importPrefix: 'generated_static_expressions',
-          importUrl: _generatedExpressionFilename);
+      transform.addOutput(asset);
     });
   }
 
@@ -143,28 +137,26 @@ class _ParserGetterSetter {
       Map<String, Set<int>> calls) {
     return '''
 class StaticClosureMap extends ClosureMap {
-  Map<String, Getter> _getters = ${generateGetterMap(properties)};
-  Map<String, Setter> _setters = ${generateSetterMap(properties)};
-  List<Map<String, Function>> _functions = ${generateFunctionMap(calls)};
-
-  Getter lookupGetter(String name)
-      => _getters[name];
-  Setter lookupSetter(String name)
-      => _setters[name];
+  Getter lookupGetter(String name) => getters[name];
+  Setter lookupSetter(String name) => setters[name];
   lookupFunction(String name, int arity)
-      => (arity < _functions.length) ? _functions[arity][name] : null;
+      => (arity < functions.length) ? functions[arity][name] : null;
 }
+
+final Map<String, Getter> getters = ${generateGetterMap(properties)};
+final Map<String, Setter> setters = ${generateSetterMap(properties)};
+final List<Map<String, Function>> functions = ${generateFunctionMap(calls)};
 ''';
   }
 
   generateGetterMap(Iterable<String> keys) {
     var lines = keys.map((key) => 'r"${key}": (o) => o.$key');
-    return '{\n   ${lines.join(",\n    ")}\n  }';
+    return '{\n  ${lines.join(",\n  ")}\n}';
   }
 
   generateSetterMap(Iterable<String> keys) {
     var lines = keys.map((key) => 'r"${key}": (o, v) => o.$key = v');
-    return '{\n   ${lines.join(",\n    ")}\n  }';
+    return '{\n  ${lines.join(",\n  ")}\n}';
   }
 
   generateFunctionMap(Map<String, Set<int>> calls) {

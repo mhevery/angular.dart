@@ -8,8 +8,12 @@ dependencies:
 
 transformers:
 - angular:
-    dart_entry: web/todo.dart
-    html_files: web/todo.html
+    dart_entries:
+    - web/todo.dart
+    - web/bouncing_balls.dart
+    html_files: # Need to split out to per-entry assets
+    - web/todo.html
+    - web/bouncing_balls.html
 
 dependency_overrides:
   di:
