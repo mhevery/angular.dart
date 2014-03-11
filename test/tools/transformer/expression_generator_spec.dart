@@ -7,10 +7,10 @@ import 'package:code_transformers/tests.dart' as tests;
 import '../../jasmine_syntax.dart';
 
 main() {
-  describe('expression_extractor', () {
+  describe('ExpressionGenerator', () {
     var htmlFiles = [];
     var options = new TransformOptions(
-        dartEntry: 'web/main.dart',
+        dartEntries: ['web/main.dart'],
         htmlFiles: htmlFiles,
         sdkDirectory: dartSdkDirectory);
     var resolvers = new Resolvers(dartSdkDirectory);
@@ -23,37 +23,34 @@ main() {
       htmlFiles.add('web/index.html');
       return tests.applyTransformers(phases,
           inputs: {
-            'angular|lib/auto_modules.dart': PACKAGE_AUTO,
             'a|web/main.dart': '''
 library foo;
-import 'package:angular/auto_modules.dart';
 ''',
             'a|web/index.html': '''
 <div>{{some.getter}}</div>
 '''
           },
           results: {
-            'a|lib/generated_static_expressions.dart': '''
-$HEADER
-  Map<String, Getter> _getters = {
-   r"some": (o) => o.some,
-    r"getter": (o) => o.getter
-  };
-  Map<String, Setter> _setters = {
-   r"some": (o, v) => o.some = v,
-    r"getter": (o, v) => o.getter = v
-  };
-  List<Map<String, Function>> _functions = [];
-$FOOTER
+            'a|web/main_static_expressions.dart': '''
+$header
+final Map<String, Getter> getters = {
+  r"some": (o) => o.some,
+  r"getter": (o) => o.getter
+};
+final Map<String, Setter> setters = {
+  r"some": (o, v) => o.some = v,
+  r"getter": (o, v) => o.getter = v
+};
+final List<Map<String, Function>> functions = [];
 '''
-        }).then((_) {
+        }).whenComplete(() {
           htmlFiles.clear();
         });
     });
   });
 }
 
-const String HEADER = '''
+const String header = '''
 library a.web.main.generated_expressions;
 
 import 'package:angular/angular.dart';
@@ -62,20 +59,10 @@ import 'package:angular/core/parser/dynamic_parser.dart' show ClosureMap;
 Module get expressionModule => new Module()
     ..value(ClosureMap, new StaticClosureMap());
 
-class StaticClosureMap extends ClosureMap {''';
-
-const String FOOTER = '''
-
-  Getter lookupGetter(String name)
-      => _getters[name];
-  Setter lookupSetter(String name)
-      => _setters[name];
+class StaticClosureMap extends ClosureMap {
+  Getter lookupGetter(String name) => getters[name];
+  Setter lookupSetter(String name) => setters[name];
   lookupFunction(String name, int arity)
-      => (arity < _functions.length) ? _functions[arity][name] : null;
-}''';
-
-const String PACKAGE_AUTO = '''
-library angular.auto_modules;
-
-Module get defaultExpressionModule => new Module();
+      => (arity < functions.length) ? functions[arity][name] : null;
+}
 ''';

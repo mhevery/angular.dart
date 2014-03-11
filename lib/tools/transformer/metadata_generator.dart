@@ -10,9 +10,7 @@ import 'package:path/path.dart' as path;
 
 import 'metadata_extractor.dart';
 
-const String _generatedMetadataFilename = 'generated_metadata.dart';
-
-class MetadataGenerator extends ResolverTransformer {
+class MetadataGenerator extends Transformer with ResolverTransformer {
   final TransformOptions options;
 
   MetadataGenerator(this.options, Resolvers resolvers) {
@@ -24,7 +22,14 @@ class MetadataGenerator extends ResolverTransformer {
 
   void applyResolver(Transform transform, Resolver resolver) {
     var asset = transform.primaryInput;
-    var extractor = new AnnotationExtractor(transform.logger, resolver);
+    var id = asset.id;
+    var outputFilename = '${path.url.basenameWithoutExtension(id.path)}'
+        '_static_metadata.dart';
+    var outputPath = path.url.join(path.url.dirname(id.path), outputFilename);
+    var outputId = new AssetId(id.package, outputPath);
+
+    var extractor = new AnnotationExtractor(transform.logger, resolver,
+        outputId);
 
     var outputBuffer = new StringBuffer();
     _writeHeader(asset.id, outputBuffer);
@@ -48,7 +53,7 @@ class MetadataGenerator extends ResolverTransformer {
       }
 
       var prefix = 'import_${index++}';
-      var url = resolver.getImportUri(lib);
+      var url = resolver.getImportUri(lib, from: outputId);
       outputBuffer.write('import \'$url\' as $prefix;\n');
       importPrefixes[lib] = '$prefix.';
     }
@@ -62,23 +67,9 @@ class MetadataGenerator extends ResolverTransformer {
     }
     _writeClassEpilogue(outputBuffer);
 
-    _writeMemberPreamble(outputBuffer);
-    for (var type in annotatedTypes) {
-      type.writeMemberAnnotations(
-          outputBuffer, transform.logger, resolver, importPrefixes);
-    }
-    _writeMemberEpilogue(outputBuffer);
-
-    var outputId =
-          new AssetId(asset.id.package, 'lib/$_generatedMetadataFilename');
-      transform.addOutput(
-            new Asset.fromString(outputId, outputBuffer.toString()));
-
-    transformIdentifiers(transform, resolver,
-        identifier: 'angular.auto_modules.defaultMetadataModule',
-        replacement: 'metadataModule',
-        importPrefix: 'generated_metadata',
-        importUrl: _generatedMetadataFilename);
+    transform.addOutput(
+          new Asset.fromString(outputId, outputBuffer.toString()));
+    transform.addOutput(asset);
   }
 }
 
@@ -87,7 +78,7 @@ void _writeHeader(AssetId id, StringSink sink) {
   sink.write('''
 library ${id.package}.$libPath.generated_metadata;
 
-import 'package:angular/angular.dart' show AttrFieldAnnotation, FieldMetadataExtractor, MetadataExtractor;
+import 'package:angular/angular.dart' show MetadataExtractor;
 import 'package:di/di.dart' show Module;
 
 ''');
@@ -96,26 +87,15 @@ import 'package:di/di.dart' show Module;
 void _writePreamble(StringSink sink) {
   sink.write('''
 Module get metadataModule => new Module()
-    ..value(MetadataExtractor, new _StaticMetadataExtractor())
-    ..value(FieldMetadataExtractor, new _StaticFieldMetadataExtractor());
+    ..value(MetadataExtractor, new _StaticMetadataExtractor());
 
 class _StaticMetadataExtractor implements MetadataExtractor {
   Iterable call(Type type) {
-    var annotations = _classAnnotations[type];
+    var annotations = typeAnnotations[type];
     if (annotations != null) {
       return annotations;
     }
     return [];
-  }
-}
-
-class _StaticFieldMetadataExtractor implements FieldMetadataExtractor {
-  Map<String, AttrFieldAnnotation> call(Type type) {
-    var annotations = _memberAnnotations[type];
-    if (annotations != null) {
-      return annotations;
-    }
-    return {};
   }
 }
 
@@ -124,24 +104,11 @@ class _StaticFieldMetadataExtractor implements FieldMetadataExtractor {
 
 void _writeClassPreamble(StringSink sink) {
   sink.write('''
-final Map<Type, Object> _classAnnotations = {
+final Map<Type, Object> typeAnnotations = {
 ''');
 }
 
 void _writeClassEpilogue(StringSink sink) {
-  sink.write('''
-};
-''');
-}
-
-void _writeMemberPreamble(StringSink sink) {
-  sink.write('''
-
-final Map<Type, Map<String, AttrFieldAnnotation>> _memberAnnotations = {
-''');
-}
-
-void _writeMemberEpilogue(StringSink sink) {
   sink.write('''
 };
 ''');

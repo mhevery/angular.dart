@@ -7,9 +7,9 @@ Function _wrapFn;
 
 _maybeWrapFn(fn) => () {
   if (_wrapFn != null) {
-    _wrapFn(fn)();
+    return _wrapFn(fn)();
   } else {
-    fn();
+    return fn();
   }
 };
 

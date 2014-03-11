@@ -10,11 +10,11 @@ import 'package:path/path.dart' as path;
 class TransformOptions {
 
   /**
-   * The file path of the primary Dart entry point (main) for the application.
+   * The file paths of the primary Dart entry point (main) for the application.
    * This is used as the starting point to find all expressions used by the
    * application.
    */
-  final String dartEntry;
+  final Set<String> dartEntries;
 
   /**
    * List of html file paths which may contain Angular expressions.
@@ -38,11 +38,11 @@ class TransformOptions {
    */
   final di.TransformOptions diOptions;
 
-  TransformOptions({String dartEntry,
+  TransformOptions({List<String> dartEntries,
       String sdkDirectory, List<String> htmlFiles,
       Map<String, String> templateUriRewrites,
       di.TransformOptions diOptions})
-    : dartEntry = dartEntry,
+    : dartEntries = dartEntries.toSet(),
       sdkDirectory = sdkDirectory,
       htmlFiles = htmlFiles != null ? htmlFiles : [],
       templateUriRewrites = templateUriRewrites != null ?
@@ -54,5 +54,5 @@ class TransformOptions {
 
   // Don't need to check package as transformers only run for primary package.
   Future<bool> isDartEntry(AssetId id) =>
-      new Future.value(id.path == dartEntry || dartEntry == '*');
+      new Future.value(dartEntries.contains(id.path));
 }
