@@ -170,7 +170,7 @@ final List<Map<String, Function>> functions = ${generateFunctionMap(calls)};
     var maxArity = arities.isEmpty ? 0 :
         arities.keys.reduce((x, y) => math.max(x, y));
 
-    var maps = new Iterable.generate(maxArity, (arity) {
+    var maps = new Iterable.generate(maxArity + 1, (arity) {
       var names = arities[arity];
       if (names == null) {
         return '{\n    }';
