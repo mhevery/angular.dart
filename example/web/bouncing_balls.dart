@@ -1,6 +1,6 @@
 import 'package:perf_api/perf_api.dart';
 import 'package:angular/angular.dart';
-import 'package:angular/angular_static.dart';
+import 'package:angular/angular_dynamic.dart';
 import 'package:angular/change_detection/change_detection.dart';
 import 'dart:html';
 import 'dart:math';
@@ -125,106 +125,7 @@ class MyModule extends Module {
 }
 
 main() {
-  var getters = {
-    'x': (o) => o.x,
-    'y': (o) => o.y,
-    'bounce': (o) => o.bounce,
-    'fps': (o) => o.fps,
-    'balls': (o) => o.balls,
-    'length': (o) => o.length,
-    'digestTime': (o) => o.digestTime,
-    'ballClassName': (o) => o.ballClassName,
-    'position': (o) => o.position,
-    'onClick': (o) => o.onClick,
-    'ball': (o) => o.ball,
-    'color': (o) => o.color,
-    'changeCount': (o) => o.changeCount,
-    'playPause': (o) => o.playPause,
-    'toggleCSS': (o) => o.toggleCSS,
-    'timeDigest': (o) => o.timeDigest,
-    'expression': (o) => o.expression,
-    'fps': (o) => o.fps,
-    'length': (o) => o.length,
-    'digestTime': (o) => o.digestTime,
-    'ballClassName': (o) => o.ballClassName,
-  };
-  var setters = {
-    'position': (o, v) => o.position = v,
-    'onClick': (o, v) => o.onClick = v,
-    'ball': (o, v) => o.ball = v,
-    'x': (o, v) => o.x = v,
-    'y': (o, v) => o.y = v,
-    'balls': (o, v) => o.balls = v,
-    'bounce': (o, v) => o.bounce = v,
-    'expression': (o, v) => o.expression = v,
-    'fps': (o, v) => o.fps = v,
-    'length': (o, v) => o.length = v,
-    'digestTime': (o, v) => o.digestTime = v,
-    'ballClassName': (o, v) => o.ballClassName = v,
-  };
-  var metadata = {
-    BounceController: [new NgController(selector: '[bounce-controller]', publishAs: 'bounce')],
-    BallPositionDirective: [new NgDirective(selector: '[ball-position]', map: const { "ball-position": '=>position'})],
-    NgEventDirective: [new NgDirective(selector: '[ng-click]', map: const {'ng-click': '&onClick'})],
-    NgADirective: [new NgDirective(selector: 'a[href]')],
-    NgRepeatDirective: [new NgDirective(children: NgAnnotation.TRANSCLUDE_CHILDREN, selector: '[ng-repeat]', map: const {'.': '@expression'})],
-    NgTextMustacheDirective: [new NgDirective(selector: r':contains(/{{.*}}/)')],
-    NgAttrMustacheDirective: [new NgDirective(selector: r'[*=/{{.*}}/]')],
-  };
-  var types = {
-    Profiler: (t) => new Profiler(),
-    DirectiveSelectorFactory: (t) => new DirectiveSelectorFactory(),
-    DirectiveMap: (t) => new DirectiveMap(t(Injector), t(MetadataExtractor), t(DirectiveSelectorFactory)),
-    Lexer: (t) => new Lexer(),
-    ClosureMap: (t) => new StaticClosureMap(getters, setters), // TODO: types don't match
-    DynamicParserBackend: (t) => new DynamicParserBackend(t(ClosureMap)),
-    DynamicParser: (t) => new DynamicParser(t(Lexer), t(ParserBackend)),
-    Compiler: (t) => new Compiler(t(Profiler), t(Parser), t(Expando)),
-    AstParser: (t) => new AstParser(t(Parser)),
-    FilterMap: (t) => new FilterMap(t(Injector), t(MetadataExtractor)),
-    ExceptionHandler: (t) => new ExceptionHandler(),
-    FieldGetterFactory: (t) => new StaticFieldGetterFactory(getters),
-    ScopeDigestTTL: (t) => new ScopeDigestTTL(),
-    ScopeStats: (t) => new ScopeStats(),
-    RootScope: (t) => new RootScope(t(Object), t(AstParser), t(Parser), t(FieldGetterFactory), t(FilterMap), t(ExceptionHandler), t(ScopeDigestTTL), t(NgZone), t(ScopeStats)),
-    NgAnimate: (t) => new NgAnimate(),
-    Interpolate: (t) => new Interpolate(t(Parser)),
-
-    NgEventDirective: (t) => new NgEventDirective(t(Element), t(Scope)),
-    NgADirective: (t) => new NgADirective(t(Element)),
-    NgRepeatDirective: (t) => new NgRepeatDirective(t(BlockHole), t(BoundBlockFactory), t(Scope), t(Parser), t(AstParser), t(FilterMap)),
-
-    BounceController: (t) => new BounceController(t(Scope)),
-    BallPositionDirective: (t) => new BallPositionDirective(t(Element), t(Scope)),
-  };
-  new NgStaticApp(types, metadata, getters)
+  new NgDynamicApp()
     .addModule(new MyModule())
     .run();
-}
-
-class StaticClosureMap extends ClosureMap {
-  final Map<String, Getter> getters;
-  final Map<String, Setter> setters;
-
-  StaticClosureMap(this.getters, this.setters);
-
-  Getter lookupGetter(String name) {
-    Getter getter = getters[name];
-    if (getter == null) throw "No getter for '$name'.";
-    return getter;
-  }
-
-  Setter lookupSetter(String name) {
-    Setter setter = setters[name];
-    if (setter == null) throw "No setter for '$name'.";
-    return setter;
-  }
-
-  Function lookupFunction(String name, int arity) {
-    var fn = lookupGetter(name);
-    return (o, [a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13]) {
-      var args = [a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13];
-      return Function.apply(fn(o), args.getRange(0, arity).toList());
-    };
-  }
 }

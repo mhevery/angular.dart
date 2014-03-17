@@ -58,7 +58,7 @@ class StaticClosureMap extends ClosureMap {
       => _getters[name];
   Setter lookupSetter(String name)
       => _setters[name];
-  lookupFunction(String name, int arity) 
+  lookupFunction(String name, int arity)
       => (arity < _functions.length) ? _functions[arity][name] : null;
 }
 ''';
@@ -84,7 +84,7 @@ class StaticClosureMap extends ClosureMap {
 
     var maxArity = arities.keys.reduce((x, y) => max(x, y));
 
-    var maps = new Iterable.generate(maxArity, (arity) {
+    var maps = new Iterable.generate(maxArity + 1, (arity) {
       var names = arities[arity];
       if (names == null) {
         return '{\n    }';

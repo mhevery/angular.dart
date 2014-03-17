@@ -1,5 +1,9 @@
 library angular.static;
 
+// REMOVE once all mirrors dependencies are gone.
+@MirrorsUsed(override: const ['*'], targets: const [])
+import 'dart:mirrors';
+
 import 'package:di/static_injector.dart';
 import 'package:angular/angular.dart';
 import 'package:angular/core/registry_static.dart';
@@ -11,10 +15,12 @@ class NgStaticApp extends NgApp {
 
   NgStaticApp(Map<Type, TypeFactory> this.typeFactories,
               Map<Type, Object> metadata,
-              Map<String, FieldGetter> fieldGetters) {
+              Map<String, FieldGetter> fieldGetters,
+              ClosureMap closureMap) {
     ngModule
       ..value(MetadataExtractor, new StaticMetadataExtractor(metadata))
-      ..value(FieldGetterFactory, new StaticFieldGetterFactory(fieldGetters));
+      ..value(FieldGetterFactory, new StaticFieldGetterFactory(fieldGetters))
+      ..value(ClosureMap, closureMap);
   }
 
   Injector createInjector()
