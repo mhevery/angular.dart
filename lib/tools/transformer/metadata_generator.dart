@@ -17,8 +17,7 @@ class MetadataGenerator extends Transformer with ResolverTransformer {
     this.resolvers = resolvers;
   }
 
-  Future<bool> isPrimary(Asset input) => new Future.value(
-      options.isDartEntry(input.id));
+  Future<bool> isPrimary(Asset input) => options.isDartEntry(input);
 
   void applyResolver(Transform transform, Resolver resolver) {
     var asset = transform.primaryInput;

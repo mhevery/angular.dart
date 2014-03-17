@@ -4,7 +4,7 @@ packages:
   analyzer:
     description: analyzer
     source: hosted
-    version: "0.12.2"
+    version: "0.13.0-dev.9"
   args:
     description: args
     source: hosted
@@ -24,18 +24,18 @@ packages:
   code_transformers:
     description: code_transformers
     source: hosted
-    version: "0.0.1-dev.2"
+    version: "0.0.1-dev.3"
   collection:
     description: collection
     source: hosted
     version: "0.9.1"
   di:
     description:
-      ref: null
-      resolved-ref: "88e0d48101517e1d3bc84f9d38d4a1b619db65aa"
-      url: "https://github.com/angular/di.dart.git"
+      ref: angular_tweaks
+      resolved-ref: "8e2f7cb482d120b51fa6b8704c3bfe02df526b95"
+      url: "git://github.com/blois/di.dart.git"
     source: git
-    version: "0.0.33"
+    version: "0.0.34"
   html5lib:
     description: html5lib
     source: hosted

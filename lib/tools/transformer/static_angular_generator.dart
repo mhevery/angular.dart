@@ -17,13 +17,13 @@ class StaticAngularGenerator extends Transformer with ResolverTransformer {
     this.resolvers = resolvers;
   }
 
-  Future<bool> isPrimary(Asset input) => new Future.value(
-      options.isDartEntry(input.id));
+  Future<bool> isPrimary(Asset input) => options.isDartEntry(input);
 
   void applyResolver(Transform transform, Resolver resolver) {
     var asset = transform.primaryInput;
 
-    var dynamicApp = resolver.getType('angular.dynamic.NgDynamicApp');
+    var dynamicApp =
+        resolver.getLibraryFunction('angular.dynamic.ngDynamicApp');
     if (dynamicApp == null) {
       // No dynamic app imports, exit.
       transform.addOutput(transform.primaryInput);
@@ -31,7 +31,7 @@ class StaticAngularGenerator extends Transformer with ResolverTransformer {
     }
 
     var id = asset.id;
-    var lib = resolver.entryLibrary;
+    var lib = resolver.getLibrary(id);
     var transaction = resolver.createTextEditTransaction(lib);
     var unit = lib.definingCompilationUnit.node;
 
@@ -44,8 +44,8 @@ class StaticAngularGenerator extends Transformer with ResolverTransformer {
       }
     }
 
-    var dynamicToStatic = new _NgDynamicToStaticVisitor(
-        dynamicApp.unnamedConstructor, transaction);
+    var dynamicToStatic =
+        new _NgDynamicToStaticVisitor(dynamicApp, transaction);
     unit.accept(dynamicToStatic);
 
     var generatedFilePrefix = '${path.url.basenameWithoutExtension(id.path)}';
@@ -74,28 +74,23 @@ void _addImport(TextEditTransaction transaction, CompilationUnit unit,
   transaction.edit(last.end, last.end, '\nimport \'$uri\' as $prefix;');
 }
 
-class _NgDynamicToStaticVisitor extends GeneralizingASTVisitor {
-  final ConstructorElement constructor;
+class _NgDynamicToStaticVisitor extends GeneralizingAstVisitor {
+  final Element ngDynamicFn;
   final TextEditTransaction transaction;
-  _NgDynamicToStaticVisitor(this.constructor, this.transaction);
+  _NgDynamicToStaticVisitor(this.ngDynamicFn, this.transaction);
 
-  visitInstanceCreationExpression(InstanceCreationExpression node) {
-    if (node.staticElement == constructor) {
-      var ctorName = node.constructorName;
-      var ctorStr = ctorName.toString();
-      var prefix = ctorStr.indexOf('.')  == -1 ? '' :
-          ctorStr.substring(0, ctorStr.indexOf('.') + 1);
+  visitMethodInvocation(MethodInvocation m) {
+    if (m.methodName.bestElement == ngDynamicFn) {
+      transaction.edit(m.methodName.beginToken.offset,
+          m.methodName.endToken.end, 'ngStaticApp');
 
-      transaction.edit(ctorName.beginToken.offset, ctorName.end,
-          '${prefix}NgStaticApp');
-
-      var args = node.argumentList;
+      var args = m.argumentList;
       transaction.edit(args.beginToken.offset + 1, args.end - 1,
         'generated_static_injector.factories, '
         'generated_static_metadata.typeAnnotations, '
         'generated_static_expressions.getters, '
-        'new generated_static_expressions.StaticClosureMap()');
+        'generated_static_expressions.setters');
     }
-    return super.visitNode(node);
+    super.visitMethodInvocation(m);
   }
 }

@@ -102,7 +102,8 @@ class BounceController {
 @NgDirective(
   selector: '[ball-position]',
   map: const {
-    "ball-position": '=>position'})
+    "ball-position": '=>position'},
+  exportExpressions: const ['x', 'y'])
 class BallPositionDirective {
   final Element element;
   final Scope scope;
@@ -125,7 +126,7 @@ class MyModule extends Module {
 }
 
 main() {
-  new NgDynamicApp()
+  ngDynamicApp()
     .addModule(new MyModule())
     .run();
 }

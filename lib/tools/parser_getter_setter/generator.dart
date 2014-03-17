@@ -58,7 +58,7 @@ class StaticClosureMap extends ClosureMap {
       => _getters[name];
   Setter lookupSetter(String name)
       => _setters[name];
-  lookupFunction(String name, int arity) 
+  lookupFunction(String name, int arity)
       => (arity < _functions.length) ? _functions[arity][name] : null;
 }
 ''';

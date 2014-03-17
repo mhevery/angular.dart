@@ -51,7 +51,7 @@ class AnnotatedType {
 /**
  * Helper which finds all libraries referenced within the provided AST.
  */
-class _LibraryCollector extends GeneralizingASTVisitor {
+class _LibraryCollector extends GeneralizingAstVisitor {
   final Set<LibraryElement> libraries = new Set<LibraryElement>();
   void visitSimpleIdentifier(SimpleIdentifier s) {
     var element = s.bestElement;
@@ -132,10 +132,7 @@ class _AnnotationWriter {
   /** Writes an expression. */
   bool _writeExpression(Expression expression) {
     if (expression is StringLiteral) {
-      var str = expression.stringValue
-          .replaceAll(r'\', r'\\')
-          .replaceAll('\'', '\\\'');
-      sink.write('\'$str\'');
+      sink.write(expression.toSource());
       return true;
     }
     if (expression is ListLiteral) {
@@ -179,27 +176,13 @@ class _AnnotationWriter {
           sink.write('${prefixes[variable.library]}${variable.name}');
           return true;
         }
-        print('variable ${variable.runtimeType} $variable');
       }
-      print('element ${element.runtimeType} $element');
     }
-    if (expression is BooleanLiteral) {
-      sink.write(expression.value);
+    if (expression is BooleanLiteral || expression is DoubleLiteral ||
+        expression is IntegerLiteral || expression is NullLiteral) {
+      sink.write(expression.toSource());
       return true;
     }
-    if (expression is DoubleLiteral) {
-      sink.write(expression.value);
-      return true;
-    }
-    if (expression is IntegerLiteral) {
-      sink.write(expression.value);
-      return true;
-    }
-    if (expression is NullLiteral) {
-      sink.write('null');
-      return true;
-    }
-    print('expression ${expression.runtimeType} $expression');
     return false;
   }
 }
@@ -246,6 +229,7 @@ class AnnotationExtractor {
     }
   }
 
+  /// Extracts all of the annotations for the specified class.
   AnnotatedType extractAnnotations(ClassElement cls) {
     if (resolver.getImportUri(cls.library, from: outputId) == null) {
       warn('Dropping annotations for ${cls.name} because the '
@@ -299,7 +283,7 @@ class AnnotationExtractor {
 
   /// Folds all AttrFieldAnnotations into the NgAnnotation annotation on the
   /// class.
-  _foldMemberAnnotations(Map<String, Annotation> memberAnnotations,
+  void _foldMemberAnnotations(Map<String, Annotation> memberAnnotations,
       AnnotatedType type) {
     // Filter down to NgAnnotation constructors.
     var ngAnnotations = type.annotations.where((a) {
@@ -345,7 +329,8 @@ class AnnotationExtractor {
     // If we don't have a 'map' parameter yet, add one.
     if (mapArg == null) {
       var map = new MapLiteral(null, null, null, [], null);
-      var label = new Label(new SimpleIdentifier(stringToken('map')),
+      var label = new Label(new SimpleIdentifier(
+          new _GeneratedToken(TokenType.STRING, 'map')),
           new _GeneratedToken(TokenType.COLON, ':'));
       mapArg = new NamedExpression(label, map);
       annotation.arguments.arguments.add(mapArg);
@@ -377,7 +362,8 @@ class AnnotationExtractor {
     });
   }
 
-  Token stringToken(String str) => new _GeneratedToken(TokenType.STRING, str);
+  Token stringToken(String str) =>
+      new _GeneratedToken(TokenType.STRING, '\'$str\'');
 
   void warn(String msg, Element element) {
     logger.warning(msg, asset: resolver.getSourceAssetId(element),
@@ -396,7 +382,7 @@ class _GeneratedToken extends Token {
  * AST visitor which walks the current AST and finds all annotated
  * classes and members.
  */
-class _AnnotationVisitor extends GeneralizingASTVisitor {
+class _AnnotationVisitor extends GeneralizingAstVisitor {
   final List<Element> allowedMemberAnnotations;
   final List<Annotation> classAnnotations = [];
   final Map<String, List<Annotation>> memberAnnotations = {};

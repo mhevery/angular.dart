@@ -1,68 +1,141 @@
 library angular.test.tools.transformer.expression_extractor_spec;
 
-import 'package:angular/tools/transformer/options.dart';
+import 'dart:async';
+
 import 'package:angular/tools/transformer/expression_generator.dart';
+import 'package:angular/tools/transformer/html_dart_references_generator.dart';
+import 'package:angular/tools/transformer/options.dart';
+import 'package:barback/barback.dart';
 import 'package:code_transformers/resolver.dart';
 import 'package:code_transformers/tests.dart' as tests;
+
 import '../../jasmine_syntax.dart';
 
 main() {
   describe('ExpressionGenerator', () {
     var htmlFiles = [];
+    var templateUriRewrites = {};
     var options = new TransformOptions(
-        dartEntries: ['web/main.dart'],
         htmlFiles: htmlFiles,
+        templateUriRewrites: templateUriRewrites,
         sdkDirectory: dartSdkDirectory);
     var resolvers = new Resolvers(dartSdkDirectory);
 
     var phases = [
+      [new HtmlDartReferencesGenerator(options)],
       [new ExpressionGenerator(options, resolvers)]
     ];
 
     it('should extract expressions', () {
-      htmlFiles.add('web/index.html');
-      return tests.applyTransformers(phases,
+      return generates(phases,
           inputs: {
             'a|web/main.dart': '''
-library foo;
-''',
+                import 'package:angular/angular.dart';
+
+                main() {} ''',
             'a|web/index.html': '''
-<div>{{some.getter}}</div>
-'''
+                <div>{{some.getter}}</div>
+                <script src='main.dart' type='application/dart'></script>''',
+            'angular|lib/angular.dart': libAngular,
           },
-          results: {
-            'a|web/main_static_expressions.dart': '''
-$header
-final Map<String, Getter> getters = {
-  r"some": (o) => o.some,
-  r"getter": (o) => o.getter
-};
-final Map<String, Setter> setters = {
-  r"some": (o, v) => o.some = v,
-  r"getter": (o, v) => o.getter = v
-};
-final List<Map<String, Function>> functions = [];
-'''
-        }).whenComplete(() {
-          htmlFiles.clear();
-        });
+          getters: ['some', 'getter'],
+          setters: ['some', 'getter']);
+    });
+
+    it('should extract functions as getters', () {
+      return generates(phases,
+          inputs: {
+            'a|web/main.dart': '''
+                import 'package:angular/angular.dart';
+
+                main() {} ''',
+            'a|web/index.html': '''
+                <div>{{some.method()}}</div>
+                <script src='main.dart' type='application/dart'></script>''',
+            'angular|lib/angular.dart': libAngular,
+          },
+          getters: ['some', 'method'],
+          setters: ['some']);
+    });
+
+    it('should follow templateUris', () {
+      return generates(phases,
+          inputs: {
+            'a|web/main.dart': '''
+                import 'package:angular/angular.dart';
+
+                @NgComponent(
+                    templateUrl: 'lib/foo.html',
+                    selector: 'my-component')
+                class FooComponent {}
+
+                main() {}
+                ''',
+            'a|lib/foo.html': '''
+                <div>{{template.contents}}</div>''',
+            'a|web/index.html': '''
+                <script src='main.dart' type='application/dart'></script>''',
+            'angular|lib/angular.dart': libAngular,
+          },
+          getters: ['template', 'contents'],
+          setters: ['template', 'contents']);
+    });
+
+    it('should apply additional HTML files', () {
+      htmlFiles.add('web/dummy.html');
+      return generates(phases,
+          inputs: {
+            'a|web/main.dart': '''
+                import 'package:angular/angular.dart';
+
+                main() {}
+                ''',
+            'a|web/dummy.html': '''
+                <div>{{contents}}</div>''',
+            'a|web/index.html': '''
+                <script src='main.dart' type='application/dart'></script>''',
+            'angular|lib/angular.dart': libAngular,
+          },
+          getters: ['contents'],
+          setters: ['contents']).whenComplete(() {
+            htmlFiles.clear();
+          });
     });
   });
+}
+
+Future generates(List<List<Transformer>> phases,
+    {Map<String, String> inputs, List<String> getters, List<String> setters,
+    Iterable<String> messages: const []}) {
+
+  var buffer = new StringBuffer();
+  buffer.write(header);
+  buffer.write('final Map<String, FieldGetter> getters = {\n');
+  buffer.write(getters.map((g) => '  r"$g": (o) => o.$g').join(',\n'));
+  buffer.write('\n};\n');
+  buffer.write('final Map<String, FieldSetter> setters = {\n');
+  buffer.write(setters.map((s) => '  r"$s": (o, v) => o.$s = v').join(',\n'));
+  buffer.write('\n};\n');
+
+  return tests.applyTransformers(phases,
+      inputs: inputs,
+      results: {
+        'a|web/main_static_expressions.dart': buffer.toString()
+      },
+      messages: messages);
 }
 
 const String header = '''
 library a.web.main.generated_expressions;
 
-import 'package:angular/angular.dart';
-import 'package:angular/core/parser/dynamic_parser.dart' show ClosureMap;
+import 'package:angular/change_detection/change_detection.dart';
 
-Module get expressionModule => new Module()
-    ..value(ClosureMap, new StaticClosureMap());
+''';
 
-class StaticClosureMap extends ClosureMap {
-  Getter lookupGetter(String name) => getters[name];
-  Setter lookupSetter(String name) => setters[name];
-  lookupFunction(String name, int arity)
-      => (arity < functions.length) ? functions[arity][name] : null;
+const String libAngular = '''
+library angular.core;
+
+class NgComponent {
+  const NgComponent({String templateUrl, String selector});
 }
 ''';

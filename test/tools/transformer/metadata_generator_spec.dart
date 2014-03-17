@@ -12,9 +12,7 @@ import '../../jasmine_syntax.dart';
 
 main() {
   describe('MetadataGenerator', () {
-    var options = new TransformOptions(
-        dartEntries: ['web/main.dart'],
-        sdkDirectory: dartSdkDirectory);
+    var options = new TransformOptions(sdkDirectory: dartSdkDirectory);
 
     var resolvers = new Resolvers(dartSdkDirectory);
 
@@ -42,6 +40,7 @@ main() {
                   @NgTwoWay('two-way-stuff')
                   String get twoWayStuff => null;
                 }
+                main() {}
                 '''
           },
           imports: [
@@ -50,7 +49,8 @@ main() {
           ],
           classes: {
             'import_0.Engine': [
-              'const import_1.NgDirective(selector: \'[*=/{{.*}}/]\', map: const {'
+              'const import_1.NgDirective(selector: r\'[*=/{{.*}}/]\', '
+                'map: const {'
                 '\'another-expression\': \'=>anotherExpression\', '
                 '\'callback\': \'&callback\', '
                 '\'two-way-stuff\': \'<=>twoWayStuff\''
@@ -72,10 +72,11 @@ main() {
                   @NgOneWay('another-expression')
                   set callback(Function) {}
                 }
+                main() {}
                 '''
           },
           messages: ['warning: callback can only have one annotation. '
-              '(main.dart 3 18)']);
+              '(web/main.dart 3 18)']);
     });
 
     it('should warn on duplicated annotations', () {
@@ -90,6 +91,7 @@ main() {
                   @NgOneWay('another-expression')
                   set anotherExpression(Function) {}
                 }
+                main() {}
                 '''
           },
           imports: [
@@ -104,7 +106,7 @@ main() {
           },
           messages: ['warning: Directive @NgOneWay(\'another-expression\') '
               'already contains an entry for \'another-expression\' '
-              '(main.dart 2 16)'
+              '(web/main.dart 2 16)'
           ]);
     });
 
@@ -123,6 +125,7 @@ main() {
                   @NgTwoWay('two-way-stuff')
                   String get twoWayStuff => null;
                 }
+                main() {}
                 '''
           },
           imports: [
@@ -150,12 +153,13 @@ main() {
                   set callback(Function) {}
 
                   @NgOneWay('another-expression')
-                  get callback() {}
+                  get callback => null;
                 }
+                main() {}
                 '''
           },
           messages: ['warning: callback can only have one annotation. '
-              '(main.dart 3 18)']);
+              '(web/main.dart 3 18)']);
     });
 
     it('should extract map arguments', () {
@@ -167,6 +171,8 @@ main() {
 
                 @NgDirective(map: const {'ng-value': '&ngValue', 'key': 'value'})
                 class Engine {}
+
+                main() {}
                 '''
           },
           imports: [
@@ -175,7 +181,8 @@ main() {
           ],
           classes: {
             'import_0.Engine': [
-              'const import_1.NgDirective(map: const {\'ng-value\': \'&ngValue\', \'key\': \'value\'})',
+              'const import_1.NgDirective(map: const {\'ng-value\': '
+              '\'&ngValue\', \'key\': \'value\'})',
             ]
           });
     });
@@ -189,6 +196,8 @@ main() {
 
                 @NgDirective(publishTypes: const [TextChangeListener])
                 class Engine {}
+
+                main() {}
                 '''
           },
           imports: [
@@ -197,7 +206,8 @@ main() {
           ],
           classes: {
             'import_0.Engine': [
-              'const import_1.NgDirective(publishTypes: const [import_1.TextChangeListener,])',
+              'const import_1.NgDirective(publishTypes: const '
+              '[import_1.TextChangeListener,])',
             ]
           });
     });
@@ -214,6 +224,8 @@ main() {
                 @NgOneWay(1)
                 @NgOneWay(null)
                 class Engine {}
+
+                main() {}
                 '''
           },
           imports: [
@@ -242,6 +254,8 @@ main() {
 
                 @NgDirective(publishTypes: const [Foo])
                 class Car {}
+
+                main() {}
                 '''
           },
           imports: [
@@ -257,9 +271,11 @@ main() {
             ]
           },
           messages: [
-            'warning: Unable to serialize annotation @Foo. (main.dart 2 16)',
+            'warning: Unable to serialize annotation @Foo. '
+                '(web/main.dart 2 16)',
             'warning: Unable to serialize annotation '
-                '@NgDirective(publishTypes: const [Foo]). (main.dart 5 16)',
+                '@NgDirective(publishTypes: const [Foo]). '
+                '(web/main.dart 5 16)',
           ]);
     });
 
@@ -273,6 +289,8 @@ main() {
 
                 @NgDirective(publishTypes: const [Car])
                 class Engine {}
+
+                main() {}
                 ''',
             'a|lib/b.dart': '''
                 class Car {}
@@ -303,6 +321,7 @@ main() {
                     print('something');
                   }
                 }
+                main() {}
                 ''',
           });
     });
@@ -317,6 +336,8 @@ main() {
                 @NgOneWay('foo\' \\')
                 class Engine {
                 }
+
+                main() {}
                 ''',
           },
           imports: [
@@ -326,6 +347,33 @@ main() {
           classes: {
             'import_0.Engine': [
               r'''const import_1.NgOneWay('foo\' \\')''',
+            ]
+          });
+    });
+
+    it('maintains string formatting', () {
+      return generates(phases,
+          inputs: {
+            'angular|lib/angular.dart': libAngular,
+            'a|web/main.dart': r'''
+                import 'package:angular/angular.dart';
+
+                @NgOneWay(r"""multiline
+                string""")
+                class Engine {
+                }
+
+                main() {}
+                ''',
+          },
+          imports: [
+            'import \'main.dart\' as import_0;',
+            'import \'package:angular/angular.dart\' as import_1;',
+          ],
+          classes: {
+            'import_0.Engine': [
+              r'''const import_1.NgOneWay(r"""multiline
+                string""")''',
             ]
           });
     });
@@ -342,6 +390,8 @@ main() {
                 class Engine {}
 
                 const int CONST_VALUE = 2;
+
+                main() {}
                 ''',
           },
           imports: [
@@ -350,8 +400,9 @@ main() {
           ],
           classes: {
             'import_0.Engine': [
-              '''const import_1.NgDirective(visibility: import_1.NgDirective.CHILDREN_VISIBILITY)''',
-              '''const import_1.NgDirective(visibility: import_0.CONST_VALUE)''',
+              'const import_1.NgDirective(visibility: '
+                  'import_1.NgDirective.CHILDREN_VISIBILITY)',
+              'const import_1.NgDirective(visibility: import_0.CONST_VALUE)',
             ]
           });
     });
@@ -372,11 +423,13 @@ main() {
                   const _Foo();
                 }
                 const _Foo _foo = const _Foo();
+
+                main() {}
                 ''',
           },
           messages: [
-            'warning: Annotation @_Foo() is not public. (main.dart 2 16)',
-            'warning: Annotation @_foo is not public. (main.dart 2 16)',
+            'warning: Annotation @_Foo() is not public. (web/main.dart 2 16)',
+            'warning: Annotation @_foo is not public. (web/main.dart 2 16)',
           ]);
     });
 
@@ -396,6 +449,8 @@ main() {
                   const Foo.bar();
                   const Foo._private();
                 }
+
+                main() {}
                 ''',
           },
           imports: [
@@ -408,7 +463,7 @@ main() {
           },
           messages: [
             'warning: Annotation @Foo._private() is not public. '
-                '(main.dart 2 16)',
+                '(web/main.dart 2 16)',
           ]);
     });
   });
