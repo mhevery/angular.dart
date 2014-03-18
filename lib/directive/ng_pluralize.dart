@@ -92,7 +92,6 @@ class NgPluralizeDirective {
   final dom.Element element;
   final Scope scope;
   final Interpolate interpolate;
-  final AstParser parser;
   int offset;
   final discreteRules = <String, String>{};
   final categoryRules = <Symbol, String>{};
@@ -166,11 +165,9 @@ class NgPluralizeDirective {
   }
 
   _setAndWatch(expression) {
-    var interpolation = interpolate(expression, false, '\${', '}');
+    var interpolation = interpolate(expression, false, r'${', '}');
     interpolation.setter = (text) => element.text = text;
     interpolation.setter(expression);
-    var items = interpolation.expressions.map((exp) => parser(exp)).toList();
-    AST ast = new PureFunctionAST(expression, new ArrayFn(), items);
-    scope.watch(ast, interpolation.call);
+    scope.watch(interpolation.expressions, interpolation.call);
   }
 }
