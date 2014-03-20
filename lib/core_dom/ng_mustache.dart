@@ -10,9 +10,11 @@ class NgTextMustacheDirective {
                           Interpolate interpolate,
                           Scope scope,
                           FilterMap filters) {
-    String expression = interpolate(template);
-
-    scope.watch(expression, _updateMarkup, readOnly: true, filters: filters);
+    scope.watch(
+        interpolate(template),
+        _updateMarkup,
+        readOnly: true,
+        filters: filters);
   }
 
   void _updateMarkup(text, previousText) {
@@ -36,11 +38,14 @@ class NgAttrMustacheDirective {
     var eqPos = template.indexOf('=');
     _attrName = template.substring(0, eqPos);
     String expression = interpolate(template.substring(eqPos + 1));
+    print(expression);
 
     _attrs.listenObserverChanges(_attrName, (hasObservers) {
+      print('change $_attrName');
       if (_hasObservers != hasObservers) {
         _hasObservers = hasObservers;
         if (_watch != null) _watch.remove();
+        print('change watch');
         _watch = scope.watch(expression, _updateMarkup, filters: filters,
             readOnly: !_hasObservers);
       }
@@ -48,6 +53,7 @@ class NgAttrMustacheDirective {
   }
 
   void _updateMarkup(text, previousText) {
+    print('update $text');
     if (previousText != text) _attrs[_attrName] = text.toString();
   }
 }

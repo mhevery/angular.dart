@@ -31,6 +31,7 @@ class Interpolate implements Function {
     int startLen = startSymbol.length;
     int endLen = endSymbol.length;
     int length = template.length;
+    if (length == 0) return '""';
 
     int startIdx;
     int endIdx;
@@ -45,7 +46,7 @@ class Interpolate implements Function {
       startIdx = template.indexOf(startSymbol, index);
       endIdx = template.indexOf(endSymbol, startIdx + startLen);
       if (startIdx != -1 && endIdx != -1) {
-        if (index < startIdx) {
+        if (index <= startIdx) {
           expParts.add('"${template.substring(index, startIdx)}"');
         }
         expParts.add('(${template.substring(startIdx + startLen, endIdx)})');

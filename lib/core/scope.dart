@@ -153,8 +153,6 @@ class Scope {
    */
   Scope get parentScope => _parentScope;
 
-  final ScopeStats _stats;
-
   /**
    * Return `true` if the scope has been destroyed. Once scope is destroyed
    * No operations are allowed on it.
@@ -186,8 +184,7 @@ class Scope {
   bool get hasOwnStreams => _streams != null  && _streams._scope == this;
 
   Scope(Object this.context, this.rootScope, this._parentScope,
-        this._readWriteGroup, this._readOnlyGroup, this.id,
-        this._stats);
+        this._readWriteGroup, this._readOnlyGroup, this.id);
 
   /**
    * Use [watch] to set up a watch in the [apply] cycle.
@@ -280,8 +277,7 @@ class Scope {
     var child = new Scope(childContext, rootScope, this,
                           _readWriteGroup.newGroup(childContext),
                           _readOnlyGroup.newGroup(childContext),
-                         '$id:${_childScopeNextId++}',
-                         _stats);
+                         '$id:${_childScopeNextId++}');
 
     var prev = _childTail;
     child._prev = prev;
@@ -435,14 +431,13 @@ class RootScope extends Scope {
 
   RootScope(Object context, Parser parser, GetterCache cacheGetter,
             FilterMap filterMap, this._exceptionHandler, this._ttl, this._zone,
-            ScopeStats _scopeStats)
+            this._scopeStats)
       : _astParser = new _AstParser(parser),
         _parser = parser,
         super(context, null, null,
             new RootWatchGroup(new DirtyCheckingChangeDetector(cacheGetter), context),
             new RootWatchGroup(new DirtyCheckingChangeDetector(cacheGetter), context),
-            '',
-            _scopeStats)
+            '')
   {
     _zone.onTurnDone = apply;
     _zone.onError = (e, s, ls) => _exceptionHandler(e, s);
@@ -505,13 +500,13 @@ class RootScope extends Scope {
   }
 
   void flush() {
-    _stats.flushStart();
+    _scopeStats.flushStart();
     _transitionState(null, STATE_FLUSH);
     RootWatchGroup readOnlyGroup = this._readOnlyGroup as RootWatchGroup;
     bool runObservers = true;
     try {
       do {
-        if (_domWriteHead != null) _stats.domWriteStart();
+        if (_domWriteHead != null) _scopeStats.domWriteStart();
         while (_domWriteHead != null) {
           try {
             _domWriteHead.fn();
@@ -519,14 +514,14 @@ class RootScope extends Scope {
             _exceptionHandler(e, s);
           }
           _domWriteHead = _domWriteHead._next;
-          if (_domWriteHead == null) _stats.domWriteEnd();
+          if (_domWriteHead == null) _scopeStats.domWriteEnd();
         }
         _domWriteTail = null;
         if (runObservers) {
           runObservers = false;
           readOnlyGroup.detectChanges(exceptionHandler:_exceptionHandler);
         }
-        if (_domReadHead != null) _stats.domWriteStart();
+        if (_domReadHead != null) _scopeStats.domWriteStart();
         while (_domReadHead != null) {
           try {
             _domReadHead.fn();
@@ -534,13 +529,13 @@ class RootScope extends Scope {
             _exceptionHandler(e, s);
           }
           _domReadHead = _domReadHead._next;
-          if (_domReadHead == null) _stats.domReadEnd();
+          if (_domReadHead == null) _scopeStats.domReadEnd();
         }
         _domReadTail = null;
       } while (_domWriteHead != null || _domReadHead != null);
-      _stats.flushEnd();
+      _scopeStats.flushEnd();
       assert((() {
-        _stats.flushAssertStart();
+        _scopeStats.flushAssertStart();
         var watchLog = [];
         var observeLog = [];
         (_readWriteGroup as RootWatchGroup).detectChanges(
@@ -552,7 +547,7 @@ class RootScope extends Scope {
                 'These watch changes were detected: ${watchLog.join('; ')}\n'
                 'These observe changes were detected: ${observeLog.join('; ')}';
         }
-        _stats.flushAssertEnd();
+        _scopeStats.flushAssertEnd();
         return true;
       })());
     } finally {

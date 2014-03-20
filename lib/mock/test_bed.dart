@@ -48,7 +48,11 @@ class TestBed {
     } else {
       throw 'Expecting: String, Node, or List<Node> got $html.';
     }
-    rootElement = rootElements.length > 0 && rootElements[0] is Element ? rootElements[0] : null;
+    Node node = rootElements[0];
+    while(node != null && node is! Element) {
+      node = node.nextElementSibling;
+    }
+    rootElement = node;
     if (directives == null) {
       directives = injector.get(DirectiveMap);
     }
