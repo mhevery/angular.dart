@@ -260,6 +260,7 @@ void main() {
         expect(iterator.moveNext()).toEqual(true);
         expect(iterator.current.currentValue, toEqualCollectionRecord(
             collection: ['a[null -> 0]'],
+            previous: [],
             additions: ['a[null -> 0]'],
             moves: [],
             removals: []));
@@ -269,6 +270,7 @@ void main() {
         expect(iterator.moveNext()).toEqual(true);
         expect(iterator.current.currentValue, toEqualCollectionRecord(
             collection: ['a', 'b[null -> 1]'],
+            previous: [],
             additions: ['b[null -> 1]'],
             moves: [],
             removals: []));
@@ -279,6 +281,7 @@ void main() {
         expect(iterator.moveNext()).toEqual(true);
         expect(iterator.current.currentValue, toEqualCollectionRecord(
             collection: ['a', 'b', 'c[null -> 2]', 'd[null -> 3]'],
+            previous: ['a', 'b'],
             additions: ['c[null -> 2]', 'd[null -> 3]'],
             moves: [],
             removals: []));

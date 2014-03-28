@@ -172,6 +172,7 @@ abstract class CollectionChangeRecord<V> {
 
   /** A list of [CollectionItem]s which are in the iteration order. */
   CollectionItem<V> get collectionHead;
+  PreviousCollectionItem<V> get previousCollectionHead;
   /** A list of new [AddedItem]s. */
   AddedItem<V> get additionsHead;
   /** A list of [MovedItem]s. */
@@ -182,6 +183,7 @@ abstract class CollectionChangeRecord<V> {
   void forEachAddition(void f(AddedItem<V> addition));
   void forEachMove(void f(MovedItem<V> move));
   void forEachRemoval(void f(RemovedItem<V> removal));
+  void resetPreviousState(CollectionChangeRecord<V> previousChangeRecord);
 }
 
 /**

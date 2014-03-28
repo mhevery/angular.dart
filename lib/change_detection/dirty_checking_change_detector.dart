@@ -793,6 +793,31 @@ class _CollectionChangeRecord<V> implements CollectionChangeRecord<V> {
   CollectionChangeItem<V> get movesHead => _movesHead;
   CollectionChangeItem<V> get removalsHead => _removalsHead;
 
+  void resetPreviousState(CollectionChangeRecord<V> previousChangeRecord) {
+    assert(_items.length == null);
+    assert(_collectionHead == null);
+    assert(_additionsHead == null);
+    assert(_movesHead == null);
+    assert(_removalsHead == null);
+    _CollectionChangeRecord = previousChangeRecord;
+    ItemRecord record = otherChangeRecord._collectionHead;
+    previousChangeRecord._collectionHead = previousChangeRecord._collectionTail = null;
+    previousChangeRecord._additionsHead = previousChangeRecord._additionsTail = null;
+    previousChangeRecord._movesHead = previousChangeRecord._movesTail = null;
+    previousChangeRecord._removalsHead = previousChangeRecord._removalsTail = null;
+    previousCollectionHead._items = null;
+    ItemRecord next = null;
+    ItemRecord prev = null;
+    while(record != null) {
+      next = record._previousNextRec;
+      record._nextRec = next;
+      record._prevRec = prev;
+      prev = record;
+      record = next;
+    }
+    if (prev != null) prev._nextRec = null;
+  }
+
   void forEachAddition(void f(AddedItem<V> addition)){
     ItemRecord record = _additionsHead;
     while (record != null) {
@@ -859,6 +884,7 @@ class _CollectionChangeRecord<V> implements CollectionChangeRecord<V> {
       }
       _length = index;
     }
+    if(resettingFromPrevious) _previousSeqHead = null;
 
     _truncate(record);
     _iterable = collection;
@@ -922,6 +948,8 @@ class _CollectionChangeRecord<V> implements CollectionChangeRecord<V> {
         return record;
       }
     }
+
+    record._previousNextRec = record._nextRec;
 
     // find the previous record so that we know where to insert after.
     ItemRecord prev = record == null ? _collectionTail : record._prevRec;
@@ -1191,6 +1219,8 @@ class ItemRecord<V> implements CollectionItem<V>, AddedItem<V>, MovedItem<V>,
   int currentIndex = null;
   V item = _INITIAL_;
 
+
+  ItemRecord<V> _previousNextRec;
   ItemRecord<V> _prevRec, _nextRec;
   ItemRecord<V> _prevDupRec, _nextDupRec;
   ItemRecord<V> _prevRemovedRec, _nextRemovedRec;
