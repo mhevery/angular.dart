@@ -445,8 +445,13 @@ class DirtyCheckingRecord<H> implements Record<H>, WatchRecord<H> {
       _mode =  _MODE_MAP_FIELD_;
       _getter = null;
     } else {
-      _mode = _MODE_GETTER_;
-      _getter = _fieldGetterFactory.getter(obj, field);
+      if (_fieldGetterFactory.isMethod(obj, field)) {
+        _mode = _MODE_IDENTITY_;
+        previousValue = currentValue = _fieldGetterFactory.getter(obj, field)(obj);
+      } else {
+        _mode = _MODE_GETTER_;
+        _getter = _fieldGetterFactory.getter(obj, field);
+      }
     }
   }
 
