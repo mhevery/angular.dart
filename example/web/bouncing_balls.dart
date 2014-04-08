@@ -117,9 +117,9 @@ class BallPositionDirective {
     var style = element.style;
     style.backgroundColor = model.color;
     scope
-        ..watch('x', (x, _) => element.style.left = '${x + 10}px',
+        ..watch('x', (x, _) => null,
             context: model, canChangeModel: false)
-        ..watch('y', (y, _) => element.style.top = '${y + 10}px',
+        ..watch('y', (y, _) => null,
             context: model, canChangeModel: false);
   }
 }

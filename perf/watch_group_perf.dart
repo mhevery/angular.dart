@@ -25,13 +25,15 @@ var _staticFieldGetterFactory = new StaticFieldGetterFactory({
 var _dynamicFieldGetterFactory = new DynamicFieldGetterFactory();
 
 main() {
-  _fieldRead();
-  _fieldReadGetter();
-  _mapRead();
-  _methodInvoke0();
-  _methodInvoke1();
-  _function2();
-  new _CollectionCheck().report();
+  //_fieldRead();
+  while(true) {
+    _fieldReadGetter();
+  }
+  //_mapRead();
+  //_methodInvoke0();
+  //_methodInvoke1();
+  //_function2();
+  //new _CollectionCheck().report();
 }
 
 class _CollectionCheck extends BenchmarkBase {
