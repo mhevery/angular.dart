@@ -63,7 +63,6 @@ void main() {
         expect(ngZone.parent).toEqual((outerZone));
       });
 
-
       it('should rethrow exceptions from the onTurnDone and call onError when the zone is sync', () {
         zone.onTurnDone = () {
           throw ["fromOnTurnDone"];
@@ -359,5 +358,133 @@ void main() {
         microLeap();
       })).toThrow('ssertion');  // Support both dart2js and the VM with half a word.
     });
+  });
+
+  describe('SingleMicrotaskZone', () {
+    it('should allow scheduling a microtask outside zone only once', async(() {
+      var zone = new VmTurnZone();
+      var singleMicrotaskZone = new SingleMicrotaskZone();
+      var invokedFirst = false;
+      var invokedSecond = false;
+      zone.run(() {
+        singleMicrotaskZone.run(() {
+          new Future.value('s').then((_) {
+            invokedFirst = true;
+          });
+        });
+        singleMicrotaskZone.run(() {
+          new Future.value('s').then((_) {
+            invokedSecond = true;
+          });
+        });
+      });
+      microLeap();
+      expect(invokedFirst && invokedSecond).toEqual(true);
+    }));
+
+    it('should throw if more then one microtask is scheduled during run',
+        async(() {
+      var zone = new VmTurnZone();
+      var singleMicrotaskZone = new SingleMicrotaskZone();
+      var error;
+      singleMicrotaskZone.onError = (e,_,__) => error = e;
+      var outerZone = Zone.current;
+      zone.run(() {
+        singleMicrotaskZone.run(() {
+          new Future.value('s').then((_) {
+            new Future.value('t').then((_) { });
+          });
+        });
+      });
+      microLeap();
+      expect(error is ScheduleMicrotaskError).toBe(true);
+    }));
+
+    it('should allow returning into angular zone', async(() {
+      var zone = new VmTurnZone();
+      var singleMicrotaskZone = new SingleMicrotaskZone();
+      var invokedFirst = false;
+      var invokedSecond = false;
+      zone.run(() {
+        singleMicrotaskZone.run(() {
+          new Future.value('s').then((_) {
+            invokedFirst = true;
+            zone.run(() {
+              new Future.value('s').then((_) {
+                invokedSecond = true;
+              });
+            });
+          });
+        });
+      });
+      microLeap();
+      expect(invokedFirst && invokedSecond).toEqual(true);
+    }));
+
+    it('should not digest when executing in SingleMicrotaskZone', (Logger log) {
+      var ngZone = new VmTurnZone();
+      ngZone.onTurnDone = () {
+        log('onTurnDone');
+      };
+      var element = document.createElement('div');
+      ngZone.run(() {
+        log('insideVmTurnZone');
+        new SingleMicrotaskZone().run(() {
+          log('insideSingleMicrotaskZone');
+          element.onClick.listen((_) {
+            log('clickInvoked');
+          });
+        });
+      });
+      // First dispatch must execute but not trigger digest.
+      element.dispatchEvent(new MouseEvent('click'));
+      // Second dispatch must go through as well, and also not trigger digest.
+      element.dispatchEvent(new MouseEvent('click'));
+      expect(log.result()).toEqual('insideVmTurnZone; insideSingleMicrotaskZone; onTurnDone; clickInvoked; clickInvoked');
+    });
+
+    it('should allow reentry to when executing in SingleMicrotaskZone', (Logger log) {
+      var ngZone = new VmTurnZone();
+      ngZone.onTurnDone = () {
+        log('onTurnDone');
+      };
+      var element = document.createElement('div');
+      ngZone.run(() {
+        log('insideVmTurnZone');
+        new SingleMicrotaskZone().run(() {
+          log('insideSingleMicrotaskZone');
+          element.onClick.listen((_) {
+            log('clickInvoked');
+            ngZone.run(() {
+              log('insideVmTurnZone');
+            });
+          });
+        });
+      });
+      // First dispatch must execute and than trigger digest.
+      element.dispatchEvent(new MouseEvent('click'));
+      // Second dispatch must go through as well, and also  trigger digest.
+      element.dispatchEvent(new MouseEvent('click'));
+      expect(log.result()).toEqual('insideVmTurnZone; insideSingleMicrotaskZone; onTurnDone; clickInvoked; insideVmTurnZone; onTurnDone; clickInvoked; insideVmTurnZone; onTurnDone');
+    });
+
+    it('should allow scheduling a microtask outside zone only once', async(() {
+      var zone = new VmTurnZone();
+      var atMostOneMicrotaskZone = new SingleMicrotaskZone();
+      var invokedFirst = false;
+      var invokedSecond = false;
+      zone.run(() {
+        atMostOneMicrotaskZone.run(() {
+          new Future.value('s').then((_) {
+            invokedFirst = true;
+          });
+          new Future.value('s').then((_) {
+            invokedSecond = true;
+          });
+        });
+      });
+      microLeap();
+      expect(invokedFirst && invokedSecond).toEqual(true);
+    }));
   });
 }
