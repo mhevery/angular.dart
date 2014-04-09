@@ -7,6 +7,7 @@ SIZE_TOO_BIG_COUNT=0
 
 function checkSize() {
   file=$1
+  echo Checking size of dart2js $1 to be no more than $2
   if [[ ! -e $file ]]; then
     echo Could not find file: $file
     SIZE_TOO_BIG_COUNT=$((SIZE_TOO_BIG_COUNT + 1));
@@ -66,6 +67,7 @@ elif [[ $TESTS == "vm" ]]; then
   BROWSERS=Dartium;
 fi
 
+echo Running unit tests on $TESTS
 ./node_modules/jasmine-node/bin/jasmine-node playback_middleware/spec/ &&
   node "node_modules/karma/bin/karma" start karma.conf \
     --reporters=junit,dots --port=8765 --runner-port=8766 \
