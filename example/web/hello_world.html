@@ -1,12 +1,15 @@
 <!DOCTYPE html>
-<html>
-<head>
-    <title>Hello, World!</title>
-</head>
-<body hello-world-controller>
-
-<h3>Hello {{ctrl.name}}!</h3>
-name: <input type="text" ng-model="ctrl.name">
+<html ng-app>
+<body>
+<div my-controller>
+    <select
+            ng-change="ctrl.selectionChanged()"
+            ng-model="ctrl.currentValue">
+        <option value="aaa">aaa</option>
+        <option value="bbb">bbb</option>
+        <option value="ccc">ccc</option>
+    </select>
+</div>
 
 <script type="application/dart" src="hello_world.dart"></script>
 <script src="packages/browser/dart.js"></script>

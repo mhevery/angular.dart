@@ -54,7 +54,8 @@ class InputSelect implements NgAttachAware {
       _mode.onModelChange(_model.viewValue);
     });
 
-    _selectElement.onChange.listen((event) => _mode.onViewChange(event));
+    print('Input on change');
+    _selectElement.onChange.listen((event){ print('INPUT EVENT'); _mode.onViewChange(event);});
     _model.render = (value) {
       // TODO(misko): this hack need to delay the rendering until after domRead
       // because the modelChange reads from the DOM. We should be able to render

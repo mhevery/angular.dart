@@ -475,12 +475,13 @@ main() {
           expect(element).toEqualSelect(['not me', ['me!'], 'nah']);
         });
 
-        it('should fire ng-change event.', () {
+        iit('should fire ng-change event only when user action', () {
           var log = '';
           compile(
               '<select name="select" ng-model="selection" ng-change="change()">' +
                 '<option value=""></option>' +
                 '<option value="c">C</option>' +
+                '<option value="d">D</option>' +
               '</select>');
 
           scope.context['change'] = () {
@@ -491,9 +492,9 @@ main() {
             scope.context['selection'] = 'c';
           });
 
-          element.value = 'c';
+          element.value = 'd';
           _.triggerEvent(element, 'change');
-          expect(log).toEqual('change:c;');
+          expect(log).toEqual('change:d;');
         });
 
 

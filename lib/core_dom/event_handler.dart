@@ -28,12 +28,16 @@ typedef void EventFunction(event);
  */
 @NgInjectableService()
 class EventHandler {
-  dom.Node _rootNode;
+  final dom.Node _rootNode;
+  final RootScope _scope;
   final Expando _expando;
   final ExceptionHandler _exceptionHandler;
-  final _listeners = <String, Function>{};
+  final _listeners = <String, Sream>{};
+  dom.EventListener _eventListener;
 
-  EventHandler(this._rootNode, this._expando, this._exceptionHandler);
+  EventHandler(this._rootNode, this._scope, this._expando, this._exceptionHandler) {
+    _eventListener = _eventListenerMethod;
+  }
 
   /**
    * Register an event. This makes sure that  an event (of the specified name)
@@ -41,13 +45,17 @@ class EventHandler {
    */
   void register(String eventName) {
     _listeners.putIfAbsent(eventName, () {
-      dom.EventListener eventListener = this._eventListener;
-      _rootNode.on[eventName].listen(eventListener);
-      return eventListener;
+      print('EventHandler.register($eventName)');
+      return _rootNode.on[eventName].listen(_eventListener);;
     });
   }
 
-  void _eventListener(dom.Event event) {
+  void release() {
+    //TODO(misko): release all of the listeners. Needs to be called from afterEach() in test;
+  }
+
+  void _eventListenerMethod(dom.Event event) {
+    print('EventHandler.listener($event)');
     dom.Node element = event.target;
     while (element != null && element != _rootNode) {
       var expression;

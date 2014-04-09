@@ -134,10 +134,11 @@ class NgEvent {
   // object?  One would pretty much only assign to one or two of those
   // properties.  I'm opting for the map since it's less boilerplate code.
   var listeners = {};
+  final EventHandler eventHandler;
   final dom.Element element;
   final Scope scope;
 
-  NgEvent(this.element, this.scope);
+  NgEvent(this.element, this.scope, this.eventHandler);
 
   // NOTE: Do not use the element.on['some_event'].listen(...) syntax.  Doing so
   //     has two downsides:
@@ -147,63 +148,61 @@ class NgEvent {
   //       platform specific event name automatically but you're on your own if
   //       you use the on[] syntax.  This also applies to $dom_addEventListener.
   //     Ref: http://api.dartlang.org/docs/releases/latest/dart_html/Events.html
-  initListener(var stream, var handler) {
-    int key = stream.hashCode;
-    if (!listeners.containsKey(key)) {
-      listeners[key] = handler;
-      stream.listen((event) => handler({r"$event": event}));
-    }
+  _initListener(name, stream, handler) {
+    print("DEPRECATED: ng-$name is depricated use on-$name instead.");
+    element.attributes['on-$name'] = element.attributes['ng-$name'];
+    eventHandler.register(name);
   }
 
-  set onAbort(value)             => initListener(element.onAbort,            value);
-  set onBeforeCopy(value)        => initListener(element.onBeforeCopy,       value);
-  set onBeforeCut(value)         => initListener(element.onBeforeCut,        value);
-  set onBeforePaste(value)       => initListener(element.onBeforePaste,      value);
-  set onBlur(value)              => initListener(element.onBlur,             value);
-  set onChange(value)            => initListener(element.onChange,           value);
-  set onClick(value)             => initListener(element.onClick,            value);
-  set onContextMenu(value)       => initListener(element.onContextMenu,      value);
-  set onCopy(value)              => initListener(element.onCopy,             value);
-  set onCut(value)               => initListener(element.onCut,              value);
-  set onDoubleClick(value)       => initListener(element.onDoubleClick,      value);
-  set onDrag(value)              => initListener(element.onDrag,             value);
-  set onDragEnd(value)           => initListener(element.onDragEnd,          value);
-  set onDragEnter(value)         => initListener(element.onDragEnter,        value);
-  set onDragLeave(value)         => initListener(element.onDragLeave,        value);
-  set onDragOver(value)          => initListener(element.onDragOver,         value);
-  set onDragStart(value)         => initListener(element.onDragStart,        value);
-  set onDrop(value)              => initListener(element.onDrop,             value);
-  set onError(value)             => initListener(element.onError,            value);
-  set onFocus(value)             => initListener(element.onFocus,            value);
-  set onFullscreenChange(value)  => initListener(element.onFullscreenChange, value);
-  set onFullscreenError(value)   => initListener(element.onFullscreenError,  value);
-  set onInput(value)             => initListener(element.onInput,            value);
-  set onInvalid(value)           => initListener(element.onInvalid,          value);
-  set onKeyDown(value)           => initListener(element.onKeyDown,          value);
-  set onKeyPress(value)          => initListener(element.onKeyPress,         value);
-  set onKeyUp(value)             => initListener(element.onKeyUp,            value);
-  set onLoad(value)              => initListener(element.onLoad,             value);
-  set onMouseDown(value)         => initListener(element.onMouseDown,        value);
-  set onMouseEnter(value)        => initListener(element.onMouseEnter,       value);
-  set onMouseLeave(value)        => initListener(element.onMouseLeave,       value);
-  set onMouseMove(value)         => initListener(element.onMouseMove,        value);
-  set onMouseOut(value)          => initListener(element.onMouseOut,         value);
-  set onMouseOver(value)         => initListener(element.onMouseOver,        value);
-  set onMouseUp(value)           => initListener(element.onMouseUp,          value);
-  set onMouseWheel(value)        => initListener(element.onMouseWheel,       value);
-  set onPaste(value)             => initListener(element.onPaste,            value);
-  set onReset(value)             => initListener(element.onReset,            value);
-  set onScroll(value)            => initListener(element.onScroll,           value);
-  set onSearch(value)            => initListener(element.onSearch,           value);
-  set onSelect(value)            => initListener(element.onSelect,           value);
-  set onSelectStart(value)       => initListener(element.onSelectStart,      value);
-//  set onSpeechChange(value)      => initListener(element.onSpeechChange,     value);
-  set onSubmit(value)            => initListener(element.onSubmit,           value);
-  set onTouchCancel(value)       => initListener(element.onTouchCancel,      value);
-  set onTouchEnd(value)          => initListener(element.onTouchEnd,         value);
-  set onTouchEnter(value)        => initListener(element.onTouchEnter,       value);
-  set onTouchLeave(value)        => initListener(element.onTouchLeave,       value);
-  set onTouchMove(value)         => initListener(element.onTouchMove,        value);
-  set onTouchStart(value)        => initListener(element.onTouchStart,       value);
-  set onTransitionEnd(value)     => initListener(element.onTransitionEnd,    value);
+  set onAbort(value)             => _initListener('abort',           element.onAbort,            value);
+  set onBeforeCopy(value)        => _initListener('beforecopy',      element.onBeforeCopy,       value);
+  set onBeforeCut(value)         => _initListener('beforecut',       element.onBeforeCut,        value);
+  set onBeforePaste(value)       => _initListener('beforepaste',     element.onBeforePaste,      value);
+  set onBlur(value)              => _initListener('blur',            element.onBlur,             value);
+  set onChange(value)            => _initListener('change',          element.onChange,           value);
+  set onClick(value)             => _initListener('click',           element.onClick,            value);
+  set onContextMenu(value)       => _initListener('contextmenu',     element.onContextMenu,      value);
+  set onCopy(value)              => _initListener('copy',            element.onCopy,             value);
+  set onCut(value)               => _initListener('cut',             element.onCut,              value);
+  set onDoubleClick(value)       => _initListener('doubleclick',     element.onDoubleClick,      value);
+  set onDrag(value)              => _initListener('drag',            element.onDrag,             value);
+  set onDragEnd(value)           => _initListener('dragend',         element.onDragEnd,          value);
+  set onDragEnter(value)         => _initListener('dragenter',       element.onDragEnter,        value);
+  set onDragLeave(value)         => _initListener('dragleave',       element.onDragLeave,        value);
+  set onDragOver(value)          => _initListener('dragover',        element.onDragOver,         value);
+  set onDragStart(value)         => _initListener('dragstart',       element.onDragStart,        value);
+  set onDrop(value)              => _initListener('drop',            element.onDrop,             value);
+  set onError(value)             => _initListener('error',           element.onError,            value);
+  set onFocus(value)             => _initListener('focus',           element.onFocus,            value);
+  set onFullscreenChange(value)  => _initListener('fullscreenchange',element.onFullscreenChange, value);
+  set onFullscreenError(value)   => _initListener('fullscreenerror', element.onFullscreenError,  value);
+  set onInput(value)             => _initListener('input',           element.onInput,            value);
+  set onInvalid(value)           => _initListener('invalid',         element.onInvalid,          value);
+  set onKeyDown(value)           => _initListener('keydown',         element.onKeyDown,          value);
+  set onKeyPress(value)          => _initListener('keypress',        element.onKeyPress,         value);
+  set onKeyUp(value)             => _initListener('keyup',           element.onKeyUp,            value);
+  set onLoad(value)              => _initListener('load',            element.onLoad,             value);
+  set onMouseDown(value)         => _initListener('mousedown',       element.onMouseDown,        value);
+  set onMouseEnter(value)        => _initListener('mouseenter',      element.onMouseEnter,       value);
+  set onMouseLeave(value)        => _initListener('mouseleave',      element.onMouseLeave,       value);
+  set onMouseMove(value)         => _initListener('mousemove',       element.onMouseMove,        value);
+  set onMouseOut(value)          => _initListener('mouseout',        element.onMouseOut,         value);
+  set onMouseOver(value)         => _initListener('mouseover',       element.onMouseOver,        value);
+  set onMouseUp(value)           => _initListener('mouseup',         element.onMouseUp,          value);
+  set onMouseWheel(value)        => _initListener('mousewheel',      element.onMouseWheel,       value);
+  set onPaste(value)             => _initListener('paste',           element.onPaste,            value);
+  set onReset(value)             => _initListener('reset',           element.onReset,            value);
+  set onScroll(value)            => _initListener('scroll',          element.onScroll,           value);
+  set onSearch(value)            => _initListener('search',          element.onSearch,           value);
+  set onSelect(value)            => _initListener('select',          element.onSelect,           value);
+  set onSelectStart(value)       => _initListener('selectstart',     element.onSelectStart,      value);
+//set onSpeechChange(value)      => _initListener('speechchange',    element.onSpeechChange,     value);
+  set onSubmit(value)            => _initListener('submit',          element.onSubmit,           value);
+  set onTouchCancel(value)       => _initListener('touchcancel',     element.onTouchCancel,      value);
+  set onTouchEnd(value)          => _initListener('touchend',        element.onTouchEnd,         value);
+  set onTouchEnter(value)        => _initListener('touchenter',      element.onTouchEnter,       value);
+  set onTouchLeave(value)        => _initListener('touchleave',      element.onTouchLeave,       value);
+  set onTouchMove(value)         => _initListener('touchmove',       element.onTouchMove,        value);
+  set onTouchStart(value)        => _initListener('touchstart',      element.onTouchStart,       value);
+  set onTransitionEnd(value)     => _initListener('transitionend',   element.onTransitionEnd,    value);
 }

@@ -2,14 +2,19 @@ import 'package:angular/angular.dart';
 import 'package:angular/angular_dynamic.dart';
 
 @NgController(
-    selector: '[hello-world-controller]',
-    publishAs: 'ctrl')
-class HelloWorldController {
-  String name = "world";
+    selector: '[my-controller]',
+    publishAs: 'ctrl'
+)
+class MyController {
+
+  String currentValue = "aaa";
+  void selectionChanged() {
+    print("currentValue $currentValue");
+  }
 }
 
 main() {
   dynamicApplication()
-      .addModule(new Module()..type(HelloWorldController))
+      .addModule(new Module()..type(MyController))
       .run();
 }

@@ -70,13 +70,34 @@ class TestBed {
   }
 
   /**
-   * Triggern a specific DOM element on a given node to test directives
+   * Trigger specific DOM element on a given node to test directives
    * which listen to events.
    */
-  triggerEvent(element, name, [type='MouseEvent']) {
-    element.dispatchEvent(new Event.eventType(type, name));
-    // Since we are manually triggering event we need to simpulate apply();
+  triggerEvent(Element element, name, [type='MouseEvent']) {
+    var event = new Event.eventType(type, name);
+    var isAttached = _isRenderTreeAttached(element);
+    if (!isAttached) {
+      var topElement = element;
+      while(topElement.parentNode != null) topElement = topElement.parentNode;
+      Element appElement = injector.get(Node);
+      appElement.append(topElement);
+      element.dispatchEvent(event);
+      topElement.remove();
+    } else {
+      element.dispatchEvent(event);
+    }
+
+    // Since we are manually triggering event we need to simulate apply();
     rootScope.apply();
+  }
+
+  bool _isRenderTreeAttached(Node node) {
+    var owner = window.document;
+    while (node != null) {
+      if (node == owner) return true;
+      node = node.parentNode;
+    }
+    return false;
   }
 
   /**

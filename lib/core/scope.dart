@@ -248,6 +248,7 @@ class Scope {
   }
 
   dynamic apply([expression, Map locals]) {
+    print('APPLY');
     _assertInternalStateConsistency();
     rootScope._transitionState(null, RootScope.STATE_APPLY);
     try {
