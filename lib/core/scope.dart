@@ -539,6 +539,7 @@ class RootScope extends Scope {
             _scopeStats)
   {
     _zone.onTurnDone = apply;
+    _zone._onScheduleMicrotask = runAsync;
     _zone.onError = (e, s, ls) => _exceptionHandler(e, s);
   }
 
@@ -666,11 +667,15 @@ class RootScope extends Scope {
 
   // QUEUES
   void runAsync(fn()) {
-    var chain = new _FunctionChain(fn);
-    if (_runAsyncHead == null) {
-      _runAsyncHead = _runAsyncTail = chain;
+    if (_state == null || _state == RootScope.STATE_APPLY || _state == RootScope.STATE_DIGEST) {
+      var chain = new _FunctionChain(fn);
+      if (_runAsyncHead == null) {
+        _runAsyncHead = _runAsyncTail = chain;
+      } else {
+        _runAsyncTail = _runAsyncTail._next = chain;
+      }
     } else {
-      _runAsyncTail = _runAsyncTail._next = chain;
+      throw "Flush phase can not schedule microtasks.";
     }
   }
 

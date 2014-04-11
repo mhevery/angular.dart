@@ -154,17 +154,23 @@ void main() {
     it('should call onTurnDone for a scheduleMicrotask in onTurnDone', async((Logger log) {
       var ran = false;
       zone.onTurnDone = () {
+        log('onTurnDone(begin)');
         if (!ran) {
           scheduleMicrotask(() { ran = true; log('onTurnAsync'); });
         }
-        log('onTurnDone');
+        log('onTurnDone(end)');
+      };
+      zon.onSchedulMicrotask = (microTaskFn) {
+        log('onScheduleMicrotask(begin)');
+        microTaskFn();
+        log('onScheduleMicrotask(end)');
       };
       zone.run(() {
         log('run');
       });
       microLeap();
 
-      expect(log.result()).toEqual('onTurnStart; run; onTurnDone; onTurnStart; onTurnAsync; onTurnDone');
+      expect(log.result()).toEqual('onTurnStart; run; onTurnDone(begin); onScheduleMicrotask(begin); onTurnAsync; onScheduleMicrotask(begin); onTurnDone(end)');
     }));
 
 
