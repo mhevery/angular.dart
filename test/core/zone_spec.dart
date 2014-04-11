@@ -185,7 +185,22 @@ void main() {
       expect(log.result()).toEqual('onTurnStart; run; scheduleMicrotask; onTurnDone; onTurnStart; onTurnAsync; onTurnDone');
     }));
 
+    it('should call onTurnDone for a scheduleMicrotask in onTurnStart triggered by a scheduleMicrotask in run', async((Logger log) {
+      var ran = false;
+      zone.onTurnStart = () {
+        if (!ran) {
+          scheduleMicrotask(() { ran = true; log('onTurnAsync'); });
+        }
+        log('onTurnStart');
+      };
+      zone.run(() {
+        scheduleMicrotask(() { log('scheduleMicrotask'); });
+        log('run');
+      });
+      microLeap();
 
+      expect(log.result()).toEqual('onTurnStart; run; scheduleMicrotask; onTurnDone; onTurnStart; onTurnAsync; onTurnDone');
+    }));
 
     it('should call onTurnDone once after a turn', async((Logger log) {
       zone.run(() {
@@ -201,12 +216,20 @@ void main() {
     }));
 
 
-    xit('should work for Future.value as well', async((Logger log) {
-      var futureRan = false;
+    it('should work for Future.value as well', async((Logger log) {
+      var onDoneFutureRan = false;
+      var onStartFutureRan = false;
+      zone.onTurnStart = () {
+        if (!onStartFutureRan) {
+          new Future.value(null).then((_) { log('onTurnStart future'); });
+          onStartFutureRan = true;
+        }
+        log('onTurnStart');
+      };
       zone.onTurnDone = () {
-        if (!futureRan) {
-          new Future.value(null).then((_) { log('onTurn future'); });
-          futureRan = true;
+        if (!onDoneFutureRan) {
+          new Future.value(null).then((_) { log('onTurnDone future'); });
+          onDoneFutureRan = true;
         }
         log('onTurnDone');
       };
@@ -227,7 +250,7 @@ void main() {
       });
       microLeap();
 
-      expect(log.result()).toEqual('run start; run end; future then; future ?; future ?; onTurnDone; onTurn future; onTurnDone');
+      expect(log.result()).toEqual('onTurnStart; run start; run end; future then; future ?; future ?; onTurnDone; onTurnStart future; onTurnDone future; onTurnDone');
     }));
 
 
@@ -254,7 +277,8 @@ void main() {
     }));
 
 
-    it('should call onTurnDone after each turn in a chain', async((Logger log) {
+    it('should call onTurnStart before any turn in the chain and onTurnDone after every turn in a'
+        ' chain', async((Logger log) {
       zone.run(() {
         log('run start');
         scheduleMicrotask(() {
@@ -311,6 +335,10 @@ void main() {
 
     it('should support assertInZone', async(() {
       var calls = '';
+      zone.onTurnStart = () {
+        zone.assertInZone();
+        calls += 'start;';
+      };
       zone.onTurnDone = () {
         zone.assertInZone();
         calls += 'done;';
@@ -325,7 +353,7 @@ void main() {
       });
 
       microLeap();
-      expect(calls).toEqual('sync;async;done;');
+      expect(calls).toEqual('start;sync;async;done;');
     }));
 
     it('should throw outside of the zone', () {
@@ -338,6 +366,10 @@ void main() {
 
     it('should support assertInTurn', async(() {
       var calls = '';
+      zone.onTurnStart = () {
+        zone.assertInZone();
+        calls += 'start;';
+      };
       zone.onTurnDone = () {
         calls += 'done;';
         zone.assertInTurn();
@@ -352,7 +384,7 @@ void main() {
       });
 
       microLeap();
-      expect(calls).toEqual('sync;async;done;');
+      expect(calls).toEqual('start;sync;async;done;');
     }));
 
 
