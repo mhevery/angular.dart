@@ -250,7 +250,7 @@ void main() {
       });
       microLeap();
 
-      expect(log.result()).toEqual('onTurnStart; run start; run end; future then; future ?; future ?; onTurnDone; onTurnStart future; onTurnDone future; onTurnDone');
+      expect(log.result()).toEqual('onTurnStart; run start; run end; onTurnStart future; future then; future ?; future ?; onTurnDone; onTurnStart; onTurnDone future; onTurnDone');
     }));
 
 
