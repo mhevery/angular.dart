@@ -1,6 +1,7 @@
 library dirty_checking_change_detector;
 
 import 'dart:collection';
+import 'dart:mirrors';
 import 'package:angular/change_detection/change_detection.dart';
 
 /**
@@ -371,13 +372,14 @@ class _ChangeIterator<H> implements Iterator<Record<H>>{
  */
 class DirtyCheckingRecord<H> implements Record<H>, WatchRecord<H> {
   static const List<String> _MODE_NAMES =
-      const ['MARKER', 'IDENT', 'GETTER', 'MAP[]', 'ITERABLE', 'MAP'];
+      const ['MARKER', 'IDENT', 'FUNC' 'GETTER', 'MAP[]', 'ITERABLE', 'MAP'];
   static const int _MODE_MARKER_ = 0;
   static const int _MODE_IDENTITY_ = 1;
-  static const int _MODE_GETTER_ = 2;
-  static const int _MODE_MAP_FIELD_ = 3;
-  static const int _MODE_ITERABLE_ = 4;
-  static const int _MODE_MAP_ = 5;
+  static const int _MODE_FUNC_ = 2;
+  static const int _MODE_GETTER_ = 3;
+  static const int _MODE_MAP_FIELD_ = 4;
+  static const int _MODE_ITERABLE_ = 5;
+  static const int _MODE_MAP_ = 6;
 
   final DirtyCheckingChangeDetectorGroup _group;
   final FieldGetterFactory _fieldGetterFactory;
@@ -460,8 +462,17 @@ class DirtyCheckingRecord<H> implements Record<H>, WatchRecord<H> {
       _mode =  _MODE_MAP_FIELD_;
       _getter = null;
     } else {
-      _mode = _MODE_GETTER_;
-      _getter = _fieldGetterFactory.getter(obj, field);
+      if (_fieldGetterFactory.isMethod(obj, field)) {
+        print("${field} is function");
+        _mode = _MODE_FUNC_;
+        previousValue = _fieldGetterFactory.getter(obj, field)(obj);
+        currentValue = _fieldGetterFactory.getter(obj, field)(obj);
+      }
+      else {
+        print("${field} is not function");
+        _mode = _MODE_GETTER_;
+        _getter = _fieldGetterFactory.getter(obj, field);
+      }
     }
   }
 
@@ -470,6 +481,7 @@ class DirtyCheckingRecord<H> implements Record<H>, WatchRecord<H> {
     var current;
     switch (_mode) {
       case _MODE_MARKER_:
+      case _MODE_FUNC_:
         return false;
       case _MODE_GETTER_:
         current = _getter(object);
