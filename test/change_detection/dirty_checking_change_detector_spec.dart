@@ -4,6 +4,7 @@ import '../_specs.dart';
 import 'package:angular/change_detection/change_detection.dart';
 import 'package:angular/change_detection/dirty_checking_change_detector.dart';
 import 'package:angular/change_detection/dirty_checking_change_detector_static.dart';
+import 'package:angular/change_detection/dirty_checking_change_detector_dynamic.dart';
 import 'dart:collection';
 import 'dart:math';
 
@@ -18,6 +19,50 @@ void main() {
 
     beforeEach(() {
       detector = new DirtyCheckingChangeDetector<String>(getterFactory);
+    });
+
+    describe('Static GetterFactory', () {
+      DirtyCheckingChangeDetector<String> detector;
+      FieldGetterFactory getterFactory = new StaticFieldGetterFactory({
+          "first": (o) => o.first,
+          "age": (o) => o.age,
+          "last": (o) => o.last,
+          "isUnderAge": (o) => o.isUnderAge,
+          "isUnderAgeAsVariable": (o) => o.isUnderAgeAsVariable
+      });
+
+      beforeEach(() {
+        detector = new DirtyCheckingChangeDetector<String>(getterFactory);
+      });
+
+      it('should return true is method is real method', () {
+        var user = new _User('Marko', 'Vuksanovic', 30);
+        expect(getterFactory.isMethod(user, 'isUnderAge')).toEqual(true);
+      });
+
+      it('should return false is field is a function', () {
+        var user = new _User('Marko', 'Vuksanovic', 30);
+        expect(getterFactory.isMethod(user, 'isUnderAgeAsVariable')).toEqual(false);
+      });
+    });
+
+    describe('Dynamic GetterFactory', () {
+      DirtyCheckingChangeDetector<String> detector;
+      FieldGetterFactory getterFactory = new DynamicFieldGetterFactory();
+
+      beforeEach(() {
+        detector = new DirtyCheckingChangeDetector<String>(getterFactory);
+      });
+
+      it('should return true is method is real method', () {
+        var user = new _User('Marko', 'Vuksanovic', 30);
+        expect(getterFactory.isMethod(user, 'isUnderAge')).toEqual(true);
+      });
+
+      it('should return false is field is a function', () {
+        var user = new _User('Marko', 'Vuksanovic', 30);
+        expect(getterFactory.isMethod(user, 'isUnderAgeAsVariable')).toEqual(true);
+      });
     });
 
     describe('object field', () {
@@ -684,8 +729,15 @@ class _User {
   String first;
   String last;
   num age;
+  var isUnderAgeAsVariable;
 
-  _User([this.first, this.last, this.age]);
+  _User([this.first, this.last, this.age]) {
+    isUnderAgeAsVariable = isUnderAge;
+  }
+
+  bool isUnderAge() {
+    return age < 18;
+  }
 }
 
 Matcher toEqualCollectionRecord({collection, previous, additions, moves, removals}) =>
