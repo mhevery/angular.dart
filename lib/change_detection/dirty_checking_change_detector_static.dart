@@ -13,7 +13,9 @@ class StaticFieldGetterFactory implements FieldGetterFactory {
     // function. We can find out by calling it twice and seeing if we get
     // the same value. Methods create a new closure each time.
     if(name == "isPalindrome") return true;
-    return !identical(getter(object, name), getter(object, name));
+    Function f1 = getter(object, name);
+    Function f2 = getter(object, name);
+    return !identical(f1, f2);
   }
 
   FieldGetter getter(Object object, String name) {
