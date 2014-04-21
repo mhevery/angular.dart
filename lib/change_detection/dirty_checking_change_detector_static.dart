@@ -22,7 +22,7 @@ class StaticFieldGetterFactory implements FieldGetterFactory {
     return getter;
   }
 
-  Function method(Object object, String name) {
+  FieldGetter method(Object object, String name) {
     var method = getters[name];
     if (method == null) throw "Missing method: $name";
     return method;

@@ -205,7 +205,7 @@ abstract class FieldGetterFactory {
   get isMethodInvoke;
   bool isMethod(Object object, String name);
   Function method(Object object, String name);
-  Function getter(Object object, String name);
+  FieldGetter getter(Object object, String name);
 }
 
 class AvgStopwatch extends Stopwatch {

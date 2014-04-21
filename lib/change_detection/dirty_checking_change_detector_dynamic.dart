@@ -14,12 +14,11 @@ class DynamicFieldGetterFactory implements FieldGetterFactory {
   final isMethodInvoke = true;
 
   bool isMethod(Object object, String name) {
-    InstanceMirror im = reflect(object);
-    Map methods = {};
-    im.type.instanceMembers.forEach((Symbol symbol, MethodMirror methodMirror) {
-      if(methodMirror.isRegularMethod) methods[symbol] = methodMirror;
-    });
-    return methods.keys.contains(new Symbol(name));
+    try {
+      return method(object, name) != null;
+    } catch (e, s) {
+      return false;
+    }
   }
 
   Function method(Object object, String name) {
