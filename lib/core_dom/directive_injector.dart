@@ -137,6 +137,8 @@ class DirectiveInjector implements DirectiveBinder {
     }
   }
 
+  static Binding _temp_binding = new Binding();
+
   DirectiveInjector(parent, appInjector, this._node, this._nodeAttrs, this._eventHandler,
                     this.scope, this._animate)
       : appInjector = appInjector,
@@ -150,32 +152,20 @@ class DirectiveInjector implements DirectiveBinder {
         scope = null,
         _animate = null;
 
-  bind(key, {Function toFactory, Factory toFactoryPos, inject,
-              Visibility visibility: Visibility.LOCAL}) {
+  bind(key, {dynamic toValue: DEFAULT_VALUE,
+            Function toFactory: DEFAULT_VALUE,
+            Factory toFactoryPos: DEFAULT_VALUE,
+            Type toImplementation, inject: const[],
+            Visibility visibility: Visibility.LOCAL}) {
     if (key == null) throw 'Key is required';
     if (key is! Key) key = new Key(key);
-    if (toFactory != null && toFactoryPos != null) {
-      throw "Can not have both toFactory and toFactoryPos.";
-    }
+    if (inject is! List) inject = [inject];
 
-    if (inject == null) {
-      if (toFactory != null) throw "Can not have toFactory without inject";
-      inject = Module.DEFAULT_REFLECTOR.parameterKeysFor(key.type);
-      toFactoryPos = Module.DEFAULT_REFLECTOR.factoryFor(key.type);
-    } else {
-      if (inject is! List) inject = [inject];
-      for(var i=0; i < inject.length; i++) {
-        if (inject[i] is! Key) inject[i] = new Key(inject[i]);
-      }
-    }
+    _temp_binding.bind(key, Module.DEFAULT_REFLECTOR, toValue: toValue, toFactory: toFactory,
+              toFactoryPos: toFactoryPos, toImplementation: toImplementation, inject: inject);
 
-    if (toFactory != null && toFactoryPos == null) {
-      toFactoryPos = (List args) => Function.apply(toFactory, args);
-    }
-    if (toFactoryPos == null) toFactoryPos = _IDENTITY;
-    bindByKey(key, toFactoryPos, inject, visibility);
+    bindByKey(key, _temp_binding.factory, _temp_binding.parameterKeys, visibility);
   }
-  static Function _IDENTITY = (args) => args[0];
 
   bindByKey(Key key, Factory factory, List<Key> parameterKeys, [Visibility visibility]) {
     if (visibility == null) visibility = Visibility.LOCAL;
