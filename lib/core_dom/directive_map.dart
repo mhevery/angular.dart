@@ -4,6 +4,7 @@ class DirectiveTypeTuple {
   final Directive directive;
   final Type type;
   DirectiveTypeTuple(this.directive, this.type);
+  toString() => '@$directive#$type';
 }
 
 @Injectable()
