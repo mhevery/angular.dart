@@ -6,12 +6,15 @@ List<dom.Node> cloneElements(elements) {
 
 class MappingParts {
   final String attrName;
-  final AST attrValueAST;
   final String mode;
-  final AST dstAST;
+  final String src;
+  final Expression srcExp;
+  final String dst;
+  final Expression dstExp;
   final String originalValue;
 
-  const MappingParts(this.attrName, this.attrValueAST, this.mode, this.dstAST, this.originalValue);
+  const MappingParts(this.attrName, this.mode, this.src, this.srcExp,
+                     this.dst, this.dstExp, this.originalValue);
 }
 
 class DirectiveRef {
@@ -22,10 +25,10 @@ class DirectiveRef {
   final Key typeKey;
   final Directive annotation;
   final String value;
-  final AST valueAST;
+  final String expression;
   final mappings = new List<MappingParts>();
 
-  DirectiveRef(this.element, type, this.annotation, this.typeKey, [ this.value, this.valueAST ])
+  DirectiveRef(this.element, type, this.annotation, this.typeKey, [ this.value, this.expression ])
       : type = type,
         factory = Module.DEFAULT_REFLECTOR.factoryFor(type),
         paramKeys = Module.DEFAULT_REFLECTOR.parameterKeysFor(type);
@@ -35,7 +38,6 @@ class DirectiveRef {
         ? (element as dom.Element).outerHtml
         : element.nodeValue;
     return '{ element: $html, selector: ${annotation.selector}, value: $value, '
-           'ast: ${valueAST == null ? 'null' : '$valueAST'}, '
            'type: $type }';
   }
 }

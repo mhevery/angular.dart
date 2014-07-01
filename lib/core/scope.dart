@@ -141,6 +141,7 @@ class ScopeLocals implements Map {
 class Scope {
   final String id;
   int _childScopeNextId = 0;
+  FormatterMap _formatters;
 
   /**
    * The default execution context for [watch]es [observe]ers, and [eval]uation.
@@ -193,7 +194,7 @@ class Scope {
 
   Scope(Object this.context, this.rootScope, this._parentScope,
         this._readWriteGroup, this._readOnlyGroup, this.id,
-        this._stats);
+        this._stats, this._formatters);
 
   /**
    * Use [watch] to set up change detection on an expression.
@@ -254,28 +255,17 @@ class Scope {
       }
     }
 
-    String astKey =
-        "${collection ? "C" : "."}${formatters == null ? "." : formatters.hashCode}$expression";
-    AST ast = rootScope.astCache[astKey];
+    var estKey = collection ? '[]:$expression' : expression;
+    AST ast = rootScope.astCache[expression];
     if (ast == null) {
-      ast = rootScope.astCache[astKey] =
-          rootScope._astParser(expression,
-              formatters: formatters, collection: collection);
+      ast = rootScope.astCache[expression] =
+          rootScope._astParser(expression, collection: collection);
     }
 
-    return watch = watchAST(ast, fn, canChangeModel: canChangeModel);
-  }
-
-  /**
-   * Use [watch] to set up change detection on an pre-parsed AST.
-   *
-   * * [ast] The pre-parsed AST.
-   * * [reactionFn]: The function executed when a change is detected.
-   * * [canChangeModel]: Whether or not the [reactionFn] can change the model.
-   */
-  Watch watchAST(AST ast, ReactionFn reactionFn, {bool canChangeModel: true}) {
     WatchGroup group = canChangeModel ? _readWriteGroup : _readOnlyGroup;
-    return group.watch(ast, reactionFn);
+    if (context == null) context = this.context;
+    context = context == null ? this.context : context;
+    return group.watch(ast, reactionFn, context, _formatters);
   }
 
   dynamic eval(expression, [Map locals]) {
@@ -328,10 +318,10 @@ class Scope {
   Scope createChild(Object childContext) {
     assert(isAttached);
     var child = new Scope(childContext, rootScope, this,
-                          _readWriteGroup.newGroup(childContext),
-                          _readOnlyGroup.newGroup(childContext),
+                          _readWriteGroup.newGroup(),
+                          _readOnlyGroup.newGroup(),
                          '$id:${_childScopeNextId++}',
-                         _stats);
+                         _stats, _formatters);
 
     var prev = _childTail;
     child._prev = prev;
@@ -645,13 +635,11 @@ class RootScope extends Scope {
         _astParser = astParser,
         super(context, null, null,
             new RootWatchGroup(fieldGetterFactory,
-                new DirtyCheckingChangeDetector(fieldGetterFactory), context, profile: true,
-                  ttl: ttl.ttl),
+                new DirtyCheckingChangeDetector(fieldGetterFactory), profile: true, ttl: ttl.ttl),
             new RootWatchGroup(fieldGetterFactory,
-                new DirtyCheckingChangeDetector(fieldGetterFactory), context, profile: true,
-                  ttl: ttl.ttl),
+                new DirtyCheckingChangeDetector(fieldGetterFactory), profile: true, ttl: ttl.ttl),
             '',
-            _scopeStats)
+            _scopeStats, formatters)
   {
     _zone.onTurnDone = apply;
     _zone.onError = (e, s, ls) => _exceptionHandler(e, s);

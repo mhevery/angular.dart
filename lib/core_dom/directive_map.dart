@@ -11,11 +11,9 @@ class DirectiveTypeTuple {
 class DirectiveMap {
   final Map<String, List<DirectiveTypeTuple>> map = new HashMap<String, List<DirectiveTypeTuple>>();
   DirectiveSelectorFactory _directiveSelectorFactory;
-  FormatterMap _formatters;
   DirectiveSelector _selector;
 
   DirectiveMap(Injector injector,
-               this._formatters,
                MetadataExtractor metadataExtractor,
                this._directiveSelectorFactory) {
     (injector as ModuleInjector).types.forEach((type) {
@@ -29,7 +27,7 @@ class DirectiveMap {
 
   DirectiveSelector get selector {
     if (_selector != null) return _selector;
-    return _selector = _directiveSelectorFactory.selector(this, _formatters);
+    return _selector = _directiveSelectorFactory.selector(this);
   }
 
   List<DirectiveTypeTuple> operator[](String key) {

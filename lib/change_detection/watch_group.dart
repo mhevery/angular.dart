@@ -2,6 +2,7 @@ library angular.watch_group;
 
 import 'dart:profiler';
 import 'package:angular/change_detection/change_detection.dart';
+import 'package:angular/core/formatter.dart';
 import 'dart:collection';
 
 part 'linked_list.dart';
@@ -55,7 +56,8 @@ class WatchGroup implements _EvalWatchList, _WatchGroupList {
   final ChangeDetectorGroup<_Handler> _changeDetector;
   /** A cache for sharing sub expression watching. Watching `a` and `a.b` will
   * watch `a` only once. */
-  final Map<String, WatchRecord<_Handler>> _cache;
+  WatchRecord<_Handler> _contextCoalescenceCache;
+  Map<Object, Map<String, WatchRecord<_Handler>>> _coalescenceCache;
   final RootWatchGroup _rootGroup;
 
   /// STATS: Number of field watchers which are in use.
@@ -108,8 +110,7 @@ class WatchGroup implements _EvalWatchList, _WatchGroupList {
   WatchGroup _watchGroupHead, _watchGroupTail;
   WatchGroup _prevWatchGroup, _nextWatchGroup;
 
-  WatchGroup._child(_parentWatchGroup, this._changeDetector, this.context,
-                    this._cache, this._rootGroup)
+  WatchGroup._child(_parentWatchGroup, this._changeDetector, this._rootGroup)
       : _parentWatchGroup = _parentWatchGroup,
         id = '${_parentWatchGroup.id}.${_parentWatchGroup._nextChildId++}'
   {
@@ -117,11 +118,10 @@ class WatchGroup implements _EvalWatchList, _WatchGroupList {
     _evalWatchTail = _evalWatchHead = _marker;
   }
 
-  WatchGroup._root(this._changeDetector, this.context)
+  WatchGroup._root(this._changeDetector)
       : id = '',
         _rootGroup = null,
-        _parentWatchGroup = null,
-        _cache = new HashMap<String, WatchRecord<_Handler>>()
+        _parentWatchGroup = null
   {
     _marker.watchGrp = this;
     _evalWatchTail = _evalWatchHead = _marker;
@@ -139,10 +139,25 @@ class WatchGroup implements _EvalWatchList, _WatchGroupList {
     return false;
   }
 
-  Watch watch(AST expression, ReactionFn reactionFn) {
-    WatchRecord<_Handler> watchRecord = _cache[expression.expression];
+  Map<String, Watch> _getCoalescenceCache(Object context) {
+    if (identical(context, this.context)) {
+      if (_contextCoalescenceCache == null) _contextCoalescenceCache = new HashMap();
+      return _coalescenceCache;
+    }
+    if (_coalescenceCache == null) _coalescenceCache = new HashMap.identity();
+    Map<String, Watch> cache = _coalescenceCache[context];
+    if (cache == null) cache = _coalescenceCache[context] = new HashMap();
+    return cache;
+  }
+
+  //TODO(misko): change order to make userData last.
+  //TODO(misko): change order to make userData last.
+  Watch watch(AST expression, ReactionFn reactionFn, dynamic context, dynamic userData) {
+    var cache = _getCoalescenceCache(context);
+    WatchRecord<_Handler> watchRecord = cache[expression.expression];
     if (watchRecord == null) {
-      _cache[expression.expression] = watchRecord = expression.setupWatch(this);
+      watchRecord = cache[expression.expression] =
+          expression.setupWatch(this, context, userData, cache);
     }
     return watchRecord.handler.addReactionFn(reactionFn);
   }
@@ -153,8 +168,9 @@ class WatchGroup implements _EvalWatchList, _WatchGroupList {
    * - [name] the field to watch.
    * - [lhs] left-hand-side of the field.
    */
-  WatchRecord<_Handler> addFieldWatch(AST lhs, String name, String expression) {
-    var fieldHandler = new _FieldHandler(this, expression);
+  WatchRecord<_Handler> addFieldWatch(AST lhs, String name, String expression, dynamic context, dynamic userData,
+                                      HashMap<String, WatchRecord<_Handler>> cache) {
+    var fieldHandler = new _FieldHandler(this, cache, expression);
 
     // Create a Record for the current field and assign the change record
     // to the handler.
@@ -162,9 +178,9 @@ class WatchGroup implements _EvalWatchList, _WatchGroupList {
     _fieldCost++;
     fieldHandler.watchRecord = watchRecord;
 
-    WatchRecord<_Handler> lhsWR = _cache[lhs.expression];
+    WatchRecord<_Handler> lhsWR = cache[lhs.expression];
     if (lhsWR == null) {
-      lhsWR = _cache[lhs.expression] = lhs.setupWatch(this);
+      lhsWR = cache[lhs.expression] = lhs.setupWatch(this, context, userData, cache);
     }
 
     // We set a field forwarding handler on LHS. This will allow the change
@@ -176,14 +192,15 @@ class WatchGroup implements _EvalWatchList, _WatchGroupList {
     return watchRecord;
   }
 
-  WatchRecord<_Handler> addCollectionWatch(AST ast) {
-    var collectionHandler = new _CollectionHandler(this, ast.expression);
+  WatchRecord<_Handler> addCollectionWatch(AST ast, dynamic context, dynamic userData,
+                                           HashMap<String, WatchRecord<_Handler>> cache) {
+    var collectionHandler = new _CollectionHandler(this, cache, ast.expression);
     var watchRecord = _changeDetector.watch(null, null, collectionHandler);
     _collectionCost++;
     collectionHandler.watchRecord = watchRecord;
-    WatchRecord<_Handler> astWR = _cache[ast.expression];
+    WatchRecord<_Handler> astWR = cache[ast.expression];
     if (astWR == null) {
-      astWR = _cache[ast.expression] = ast.setupWatch(this);
+      astWR = cache[ast.expression] = ast.setupWatch(this, context, userData, cache);
     }
 
     // We set a field forwarding handler on LHS. This will allow the change
@@ -204,10 +221,9 @@ class WatchGroup implements _EvalWatchList, _WatchGroupList {
    * - [isPure] A pure function is one which holds no internal state. This implies that the
    *   function is idempotent.
    */
-  _EvalWatchRecord addFunctionWatch(Function fn, List<AST> argsAST,
-                                    Map<Symbol, AST> namedArgsAST,
-                                    String expression, bool isPure) =>
-      _addEvalWatch(null, fn, null, argsAST, namedArgsAST, expression, isPure);
+  _EvalWatchRecord addFunctionWatch(Function fn, List<AST> argsAST, Map<Symbol, AST> namedArgsAST, String expression,
+      bool isPure, dynamic context, dynamic userData, HashMap<String, WatchRecord<_Handler>> cache) =>
+      _addEvalWatch(null, fn, null, argsAST, namedArgsAST, expression, isPure, context, userData, cache);
 
   /**
    * Watch a method [name]ed represented by an [expression].
@@ -217,27 +233,24 @@ class WatchGroup implements _EvalWatchList, _WatchGroupList {
    * - [argsAST] list of [AST]es which represent arguments passed to method.
    * - [expression] normalized expression used for caching.
    */
-  _EvalWatchRecord addMethodWatch(AST lhs, String name, List<AST> argsAST,
-                                  Map<Symbol, AST> namedArgsAST,
-                                  String expression) =>
-     _addEvalWatch(lhs, null, name, argsAST, namedArgsAST, expression, false);
+  _EvalWatchRecord addMethodWatch(AST lhs, String name, List<AST> argsAST, Map<Symbol, AST> namedArgsAST,
+      String expression, dynamic context, dynamic userData, HashMap<String, WatchRecord<_Handler>> cache) =>
+          _addEvalWatch(lhs, null, name, argsAST, namedArgsAST, expression, false, context, userData, cache);
 
 
 
-  _EvalWatchRecord _addEvalWatch(AST lhsAST, Function fn, String name,
-                                 List<AST> argsAST,
-                                 Map<Symbol, AST> namedArgsAST,
-                                 String expression, bool isPure) {
-    _InvokeHandler invokeHandler = new _InvokeHandler(this, expression);
+  _EvalWatchRecord _addEvalWatch(AST lhsAST, Function fn, String name, List<AST> argsAST, Map<Symbol, AST> namedArgsAST,
+      String expression, bool isPure, dynamic context, dynamic userData, HashMap<String, WatchRecord<_Handler>> cache) {
+    _InvokeHandler invokeHandler = new _InvokeHandler(this, cache, expression);
     var evalWatchRecord = new _EvalWatchRecord(
         _rootGroup._fieldGetterFactory, this, invokeHandler, fn, name,
         argsAST.length, isPure);
     invokeHandler.watchRecord = evalWatchRecord;
 
     if (lhsAST != null) {
-      var lhsWR = _cache[lhsAST.expression];
+      var lhsWR = cache[lhsAST.expression];
       if (lhsWR == null) {
-        lhsWR = _cache[lhsAST.expression] = lhsAST.setupWatch(this);
+        lhsWR = cache[lhsAST.expression] = lhsAST.setupWatch(this, context, userData, cache);
       }
       lhsWR.handler.addForwardHandler(invokeHandler);
       invokeHandler.acceptValue(lhsWR.currentValue);
@@ -246,22 +259,22 @@ class WatchGroup implements _EvalWatchList, _WatchGroupList {
     // Convert the args from AST to WatchRecords
     for (var i = 0; i < argsAST.length; i++) {
       var ast = argsAST[i];
-      WatchRecord<_Handler> record = _cache[ast.expression];
+      WatchRecord<_Handler> record = cache[ast.expression];
       if (record == null) {
-        record = _cache[ast.expression] = ast.setupWatch(this);
+        record = cache[ast.expression] = ast.setupWatch(this, context, userData, cache);
       }
-      _ArgHandler handler = new _PositionalArgHandler(this, evalWatchRecord, i);
+      _ArgHandler handler = new _PositionalArgHandler(this, _coalescenceCache, evalWatchRecord, i);
       _ArgHandlerList._add(invokeHandler, handler);
       record.handler.addForwardHandler(handler);
       handler.acceptValue(record.currentValue);
     }
 
     namedArgsAST.forEach((Symbol name, AST ast) {
-      WatchRecord<_Handler> record = _cache[ast.expression];
+      WatchRecord<_Handler> record = cache[ast.expression];
       if (record == null) {
-        record = _cache[ast.expression] = ast.setupWatch(this);
+        record = cache[ast.expression] = ast.setupWatch(this, context, userData, cache);
       }
-      _ArgHandler handler = new _NamedArgHandler(this, evalWatchRecord, name);
+      _ArgHandler handler = new _NamedArgHandler(this, _coalescenceCache, evalWatchRecord, name);
       _ArgHandlerList._add(invokeHandler, handler);
       record.handler.addForwardHandler(handler);
       handler.acceptValue(record.currentValue);
@@ -290,19 +303,13 @@ class WatchGroup implements _EvalWatchList, _WatchGroupList {
 
   /**
    * Create a new child [WatchGroup].
-   *
-   * - [context] if present the the child [WatchGroup] expressions will evaluate
-   * against the new [context]. If not present than child expressions will
-   * evaluate on same context allowing the reuse of the expression cache.
    */
-  WatchGroup newGroup([Object context]) {
+  WatchGroup newGroup() {
     _EvalWatchRecord prev = _childWatchGroupTail._evalWatchTail;
     _EvalWatchRecord next = prev._nextEvalWatch;
     var childGroup = new WatchGroup._child(
         this,
         _changeDetector.newGroup(),
-        context == null ? this.context : context,
-        new HashMap<String, WatchRecord<_Handler>>(),
         _rootGroup == null ? this : _rootGroup);
     _WatchGroupList._add(this, childGroup);
     var marker = childGroup._marker;
@@ -392,9 +399,8 @@ class RootWatchGroup extends WatchGroup {
   int _removeCount = 0;
 
 
-  RootWatchGroup(this._fieldGetterFactory, ChangeDetector changeDetector, Object context, {
-    bool profile: false,  int ttl })
-      : super._root(changeDetector, context) {
+  RootWatchGroup(this._fieldGetterFactory, ChangeDetector changeDetector, { bool profile: false,  int ttl })
+      : super._root(changeDetector) {
     if (profile) {
       _detectChangesTags = new List(ttl + 2);
       _reactionFnTags = new List(ttl + 2);
@@ -579,11 +585,12 @@ abstract class _Handler implements _LinkedList, _LinkedListItem, _WatchList {
 
   final String expression;
   final WatchGroup watchGrp;
+  final Map<String, Watch> _coalescenceCache;
 
   WatchRecord<_Handler> watchRecord;
   _Handler forwardingHandler;
 
-  _Handler(this.watchGrp, this.expression) {
+  _Handler(this.watchGrp, this._coalescenceCache, this.expression) {
     assert(watchGrp != null);
     assert(expression != null);
   }
@@ -606,7 +613,7 @@ abstract class _Handler implements _LinkedList, _LinkedListItem, _WatchList {
       _releaseWatch();
       // Remove ourselves from cache, or else new registrations will go to us,
       // but we are dead
-      watchGrp._cache.remove(expression);
+      _coalescenceCache.remove(expression);
 
       if (forwardingHandler != null) {
         // TODO(misko): why do we need this check?
@@ -647,8 +654,9 @@ abstract class _Handler implements _LinkedList, _LinkedListItem, _WatchList {
 }
 
 class _ConstantHandler extends _Handler {
-  _ConstantHandler(WatchGroup watchGroup, String expression, constantValue)
-      : super(watchGroup, expression)
+  _ConstantHandler(WatchGroup watchGroup, Map<String, Watch> coalescenceCache,
+                   String expression, constantValue)
+      : super(watchGroup, coalescenceCache, expression)
   {
     watchRecord = new _EvalWatchRecord.constant(this, constantValue);
   }
@@ -656,7 +664,8 @@ class _ConstantHandler extends _Handler {
 }
 
 class _FieldHandler extends _Handler {
-  _FieldHandler(watchGrp, expression): super(watchGrp, expression);
+  _FieldHandler(WatchGroup watchGrp, Map<String, Watch> coalescenceCache, String expression)
+      : super(watchGrp, coalescenceCache, expression);
 
   /**
    * This function forwards the watched object to the next [_Handler]
@@ -669,8 +678,8 @@ class _FieldHandler extends _Handler {
 }
 
 class _CollectionHandler extends _Handler {
-  _CollectionHandler(WatchGroup watchGrp, String expression)
-      : super(watchGrp, expression);
+  _CollectionHandler(WatchGroup watchGrp, Map<String, Watch> coalescenceCache, String expression)
+      : super(watchGrp, coalescenceCache, expression);
   /**
    * This function forwards the watched object to the next [_Handler] synchronously.
    */
@@ -690,17 +699,19 @@ abstract class _ArgHandler extends _Handler {
 
   // TODO(misko): Why do we override parent?
   final _EvalWatchRecord watchRecord;
-  _ArgHandler(WatchGroup watchGrp, String expression, this.watchRecord)
-      : super(watchGrp, expression);
+  _ArgHandler(WatchGroup watchGrp, Map<String, Watch> coalescenceCache, String expression,
+              this.watchRecord)
+      : super(watchGrp, coalescenceCache, expression);
 
   _releaseWatch() => null;
 }
 
 class _PositionalArgHandler extends _ArgHandler {
   final int index;
-  _PositionalArgHandler(WatchGroup watchGrp, _EvalWatchRecord record, int index)
+  _PositionalArgHandler(WatchGroup watchGrp, Map<String, Watch> coalescenceCache,
+                        _EvalWatchRecord record, int index)
       : this.index = index,
-        super(watchGrp, 'arg[$index]', record);
+        super(watchGrp, coalescenceCache, 'arg[$index]', record);
 
   void acceptValue(object) {
     watchRecord.dirtyArgs = true;
@@ -711,9 +722,10 @@ class _PositionalArgHandler extends _ArgHandler {
 class _NamedArgHandler extends _ArgHandler {
   final Symbol name;
 
-  _NamedArgHandler(WatchGroup watchGrp, _EvalWatchRecord record, Symbol name)
+  _NamedArgHandler(WatchGroup watchGrp, Map<String, Watch> coalescenceCache,
+                   _EvalWatchRecord record, Symbol name)
       : this.name = name,
-        super(watchGrp, 'namedArg[$name]', record);
+        super(watchGrp, coalescenceCache, 'namedArg[$name]', record);
 
   void acceptValue(object) {
     if (watchRecord.namedArgs == null) {
@@ -727,8 +739,8 @@ class _NamedArgHandler extends _ArgHandler {
 class _InvokeHandler extends _Handler implements _ArgHandlerList {
   _ArgHandler _argHandlerHead, _argHandlerTail;
 
-  _InvokeHandler(WatchGroup watchGrp, String expression)
-      : super(watchGrp, expression);
+  _InvokeHandler(WatchGroup watchGrp, Map<String, Watch> coalescenceCache, String expression)
+      : super(watchGrp, coalescenceCache, expression);
 
   void acceptValue(object) {
     watchRecord.object = object;

@@ -24,14 +24,12 @@ class DirectiveSelector {
   ElementBinderFactory _binderFactory;
   DirectiveMap _directives;
   Interpolate _interpolate;
-  FormatterMap _formatters;
-  ASTParser _astParser;
   var elementSelector = new _ElementSelector('');
   var attrSelector = <_ContainsSelector>[];
   var textSelector = <_ContainsSelector>[];
 
   /// Parses all the [_directives] so they can be retrieved via [matchElement]
-  DirectiveSelector(this._directives, this._formatters, this._binderFactory, this._interpolate, this._astParser) {
+  DirectiveSelector(this._directives, this._binderFactory, this._interpolate) {
     _directives.forEach((Directive annotation, Type type) {
       var match;
       var selector = annotation.selector;
@@ -59,7 +57,7 @@ class DirectiveSelector {
   ElementBinder matchElement(dom.Node node) {
     assert(node is dom.Element);
 
-    ElementBinderBuilder builder = _binderFactory.builder(_formatters, _directives);
+    ElementBinderBuilder builder = _binderFactory.builder(_directives);
     List<_ElementSelector> partialSelection;
     final classes = new Set<String>();
     final attrs = new HashMap<String, String>();
@@ -87,7 +85,7 @@ class DirectiveSelector {
       if (attrName.startsWith("on-")) {
         builder.onEvents[attrName] = value;
       } else if (attrName.startsWith("bind-")) {
-        builder.bindAttrs[attrName] = _astParser(value, formatters: _formatters);
+        builder.bindAttrs[attrName] = value;
       }
 
       attrs[attrName] = value;
@@ -100,9 +98,8 @@ class DirectiveSelector {
           _directives[selectorRegExp.selector].forEach((DirectiveTypeTuple tuple) {
             // Pre-compute the AST to watch this value.
             String expression = _interpolate(value);
-            AST valueAST = _astParser(expression, formatters: _formatters);
             builder.addDirective(new DirectiveRef(
-                node, tuple.type, tuple.directive, new Key(tuple.type), attrName, valueAST));
+                node, tuple.type, tuple.directive, new Key(tuple.type), attrName, expression));
           });
         }
       }
@@ -129,7 +126,7 @@ class DirectiveSelector {
   }
 
   ElementBinder matchText(dom.Node node) {
-    ElementBinderBuilder builder = _binderFactory.builder(_formatters, _directives);
+    ElementBinderBuilder builder = _binderFactory.builder(_directives);
 
     var value = node.nodeValue;
     for (var k = 0; k < textSelector.length; k++) {
@@ -138,10 +135,9 @@ class DirectiveSelector {
         _directives[selectorRegExp.selector].forEach((tuple) {
           // Pre-compute the AST to watch this value.
           String expression = _interpolate(value);
-          var valueAST = _astParser(expression, formatters: _formatters);
 
           builder.addDirective(new DirectiveRef(node, tuple.type,
-              tuple.directive, new Key(tuple.type), value, valueAST));
+              tuple.directive, new Key(tuple.type), expression));
         });
       }
     }
@@ -171,10 +167,8 @@ class DirectiveSelectorFactory {
    * NOTE: [formatters] will become required very soon.  New code must pass
    * both parameters.
    */
-  DirectiveSelector selector(DirectiveMap directives, [FormatterMap formatters]) =>
-      new DirectiveSelector(directives,
-          formatters != null ? formatters : _defaultFormatterMap,
-          _binderFactory, _interpolate, _astParser);
+  DirectiveSelector selector(DirectiveMap directives) =>
+      new DirectiveSelector(directives, _binderFactory, _interpolate);
 }
 
 class _Directive {

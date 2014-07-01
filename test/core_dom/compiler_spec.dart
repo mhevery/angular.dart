@@ -13,7 +13,7 @@ forBothCompilers(fn) {
     fn('walking');
   });
 
-  describe('tagging compiler', () {
+  ddescribe('tagging compiler', () {
     beforeEachModule((Module m) {
       m.bind(Compiler, toImplementation: TaggingCompiler);
       return m;
@@ -238,7 +238,7 @@ void main() {
           ..bind(IoComponent);
       });
 
-      it('should support bind- syntax', () {
+      iit('should support bind- syntax', () {
         var element = _.compile('<div ng-bind bind-ng-bind="name"></div>');
 
         _.rootScope.context['name'] = 'angular';
@@ -586,7 +586,7 @@ void main() {
       it('should error on non-asignable-mapping', async(() {
         expect(() {
           _.compile(r'<div><non-assignable-mapping></non-assignable-mapping</div>');
-        }).toThrow("Expression '+(1, 2)' is not assignable in mapping '@1+2' for attribute 'attr'.");
+        }).toThrow("Expression '1+2' is not assignable in mapping '@1+2' for attribute 'attr'.");
       }));
 
       it('should expose mapped attributes as camel case', async(() {

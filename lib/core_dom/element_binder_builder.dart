@@ -3,29 +3,29 @@ part of angular.core.dom_internal;
 @Injectable()
 class ElementBinderFactory {
   final Parser _parser;
+  final FormatterMap _formatterMap;
   final Profiler _perf;
   final CompilerConfig _config;
   final Expando _expando;
-  final ASTParser astParser;
   final ComponentFactory componentFactory;
   final ShadowDomComponentFactory shadowDomComponentFactory;
   final TranscludingComponentFactory transcludingComponentFactory;
 
-  ElementBinderFactory(this._parser, this._perf, this._config, this._expando,
-      this.astParser, this.componentFactory, this.shadowDomComponentFactory, this.transcludingComponentFactory);
+  ElementBinderFactory(this._parser, this._formatterMap, this._perf, this._config, this._expando,
+      this.componentFactory, this.shadowDomComponentFactory, this.transcludingComponentFactory);
 
   // TODO: Optimize this to re-use a builder.
-  ElementBinderBuilder builder(FormatterMap formatters, DirectiveMap directives) =>
-    new ElementBinderBuilder(this,formatters, directives);
+  ElementBinderBuilder builder(DirectiveMap directives) =>
+    new ElementBinderBuilder(this, directives, _parser);
 
   ElementBinder binder(ElementBinderBuilder b) =>
 
-      new ElementBinder(_perf, _expando, _parser, _config,
+      new ElementBinder(_perf, _expando, _parser, _formatterMap, _config,
           b.componentData, b.decorators, b.onEvents, b.bindAttrs, b.childMode);
 
   TemplateElementBinder templateBinder(ElementBinderBuilder b, ElementBinder transclude) =>
       new TemplateElementBinder(_perf, _expando, _parser, _config,
-          b.template, transclude, b.onEvents, b.bindAttrs, b.childMode);
+          b.template, transclude, b.onEvents, b.bindAttrs, b.childMode, _formatterMap);
 }
 
 /**
@@ -37,12 +37,12 @@ class ElementBinderBuilder {
 
   final ElementBinderFactory _factory;
   final DirectiveMap _directives;
-  final FormatterMap _formatters;
+  final Parser _parser;
 
   /// "on-*" attribute names and values, added by a [DirectiveSelector]
   final onEvents = new HashMap<String, String>();
   /// "bind-*" attribute names and values, added by a [DirectiveSelector]
-  final bindAttrs = new HashMap<String, AST>();
+  final bindAttrs = new HashMap<String, String>();
 
   final decorators = <DirectiveRef>[];
   DirectiveRef template;
@@ -51,7 +51,7 @@ class ElementBinderBuilder {
   // Can be either COMPILE_CHILDREN or IGNORE_CHILDREN
   String childMode = Directive.COMPILE_CHILDREN;
 
-  ElementBinderBuilder(this._factory, this._formatters, this._directives);
+  ElementBinderBuilder(this._factory, this._directives, this._parser);
 
   /**
    * Adds [DirectiveRef]s to this [ElementBinderBuilder].
@@ -98,17 +98,10 @@ class ElementBinderBuilder {
         var dstPath = match[2];
 
         String dstExpression = dstPath.isEmpty ? attrName : dstPath;
-        AST dstAST = _factory.astParser(dstExpression); // no formatters
-
-        // Look up the value of attrName and compute an AST
-        AST ast;
-        if (mode != '@' && mode != '&') {
-          var value = attrName == "." ? ref.value : (ref.element as dom.Element).attributes[attrName];
-          if (value == null || value.isEmpty) { value = "''"; }
-          ast = _factory.astParser(value, formatters: _formatters);
-        }
-
-        ref.mappings.add(new MappingParts(attrName, ast, mode, dstAST, mapping));
+        var value = attrName == "." ? ref.value : (ref.element as dom.Element).attributes[attrName];
+        ref.mappings.add(new MappingParts(attrName, mode,
+            value, mode == '@' ? null : _parser(value),
+            dstExpression, _parser(dstExpression), mapping));
       });
     }
   }

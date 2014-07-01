@@ -24,7 +24,7 @@ void main() {
       expect(body.text).toEqual('{{ignor me}}works');
     });
 
-    it('should compile starting at ng-app node', () {
+    it('should compile starting at explicit node', () {
       var body = setBody(
           '<div>{{ignor me}}<div ng-bind="\'works\'"></div></div>');
       applicationFactory()..selector('div[ng-bind]')..run();
