@@ -1348,8 +1348,8 @@ class OneTimeDecorator {
 )
 class SameNameTransclude {
   var valueTransclude;
-  SameNameTransclude(ViewPort port, ViewFactory factory, RootScope scope, Injector injector) {
-    port.insert(factory.call(injector));
+  SameNameTransclude(ViewPort port, ViewFactory factory, RootScope scope) {
+    port.insertNew(factory);
     scope.context['sameTransclude'] = this;
   }
 }
