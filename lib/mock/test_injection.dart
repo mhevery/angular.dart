@@ -74,12 +74,7 @@ class _SpecInjector {
       Key key = new Key(
           (parameter.type as ClassMirror).reflectedType,
           metadata.isEmpty ? null : metadata.first.type.reflectedType);
-      try {
-        return injector.getByKey(key);
-      } on NoProviderError catch (e) {
-        (e as NoProviderError).appendKey(key);
-        rethrow;
-      }
+      return injector.getByKey(key);
     }).toList();
 
     return cm.apply(args).reflectee;
