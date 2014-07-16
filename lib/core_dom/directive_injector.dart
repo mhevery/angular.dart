@@ -167,7 +167,7 @@ class DirectiveInjector implements DirectiveBinder {
   }
 
   bindByKey(Key key, Function factory, List<Key> parameterKeys, [Visibility visibility]) {
-    if (visibility == null) visibility = Visibility.CHILDREN;
+    if (visibility == null) visibility = Visibility.LOCAL;
     int visibilityId = _toVisId(visibility);
     int keyVisId = key.uid;
     if (keyVisId != visibilityId) {

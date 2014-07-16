@@ -477,12 +477,12 @@ class InputNumberLike {
  * kind would be appropriate) or, for browsers that fail to conform to the
  * HTML5 standard in their processing of date-like inputs.
  */
-@Decorator(selector: 'input[type=date][ng-model][ng-bind-type]', visibility: Visibility.LOCAL)
-@Decorator(selector: 'input[type=time][ng-model][ng-bind-type]', visibility: Visibility.LOCAL)
-@Decorator(selector: 'input[type=datetime][ng-model][ng-bind-type]', visibility: Visibility.LOCAL)
-@Decorator(selector: 'input[type=datetime-local][ng-model][ng-bind-type]', visibility: Visibility.LOCAL)
-@Decorator(selector: 'input[type=month][ng-model][ng-bind-type]', visibility: Visibility.LOCAL)
-@Decorator(selector: 'input[type=week][ng-model][ng-bind-type]', visibility: Visibility.LOCAL)
+@Decorator(selector: 'input[type=date][ng-model][ng-bind-type]')
+@Decorator(selector: 'input[type=time][ng-model][ng-bind-type]')
+@Decorator(selector: 'input[type=datetime][ng-model][ng-bind-type]')
+@Decorator(selector: 'input[type=datetime-local][ng-model][ng-bind-type]')
+@Decorator(selector: 'input[type=month][ng-model][ng-bind-type]')
+@Decorator(selector: 'input[type=week][ng-model][ng-bind-type]')
 class NgBindTypeForDateLike {
   static const DATE = 'date';
   static const NUMBER = 'number';
@@ -695,8 +695,8 @@ final _uidCounter = new _UidCounter();
  * the `ng-model` property when the corresponding radio element or option is
  * selected.
  */
-@Decorator(selector: 'input[type=radio][ng-model][ng-value]', visibility: Visibility.LOCAL)
-@Decorator(selector: 'option[ng-value]', visibility: Visibility.LOCAL)
+@Decorator(selector: 'input[type=radio][ng-model][ng-value]')
+@Decorator(selector: 'option[ng-value]')
 class NgValue {
   static module(DirectiveBinder binder) => binder.bind(NgValue, visibility: Visibility.LOCAL);
 
