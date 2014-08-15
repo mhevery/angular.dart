@@ -558,22 +558,6 @@ void main() {
         expect(element).toHaveText('inside ');
       }));
 
-      it('should not pass null to a inner directives', async((Logger logger) {
-        _.compile('<div>'
-                    '<once-inside ng-repeat="x in nn" v="b"></once-inside>'
-                  '</div>');
-
-        _.rootScope.context['nn'] = [1];
-        _.rootScope.apply();
-        microLeap();
-
-        _.rootScope.context['nn'].add(2);
-        _.rootScope.apply();
-        microLeap();
-
-        expect(logger.contains(null)).toBeFalsy();
-      }));
-
       it('should create a component with I/O', async(() {
          _.compile(r'<div><io attr="A" expr="name" ondone="done=true"></io></div>');
         microLeap();
@@ -1030,7 +1014,7 @@ void main() {
       }));
 
       /*
-        This test is dissabled becouse I (misko) thinks it has no real use case. It is easier
+        This test is disabled because I (misko) thinks it has no real use case. It is easier
         to understand in terms of ng-repeat
 
           <tabs>
@@ -1044,7 +1028,7 @@ void main() {
           the DirectChild between tabs and pane.
 
           It is not clear to me (misko) that there is a use case for getting hold of the
-          tranrscluding directive such a ng-repeat.
+          transcluding directive such a ng-repeat.
        */
       xit('should reuse controllers for transclusions', async((Logger log) {
         _.compile('<div simple-transclude-in-attach include-transclude>view</div>');
