@@ -1,6 +1,9 @@
 library angular.dom.view_impl;
 
 import "dart:html" show Node;
+import "view_factory.dart" show ViewFactory;
+import "view_port.dart" show ViewPort;
+
 
 /**
  * The purpose of the [View] is to:
@@ -15,8 +18,8 @@ import "dart:html" show Node;
  *
  * A view is created by [ViewFactory]. The creation process involves cloning template DOM,
  * creating [WatchGroup]s for digest and flush, and setting up the DirectiveInjectors. The
- * creation should contain all of the expensive code, so that we can cache created views,
- * the goal is to make attaching/detaching cheap.
+ * creation should contain all of the expensive code, so that we can cache created views.
+ * The goal is to make attaching/detaching cheap.
  *
  *
  * # Lifecycle
@@ -40,12 +43,12 @@ class View {
   /**
    * The view Factory which created this view and is responsible for caching these Views.
    */
-  final ViewFactory viewFactory;
+  final ViewFactory viewFactory = null;
 
   /**
    * A set of DOM nodes which this [View] considers roots.
    */
-  final List<Node> nodes;
+  final List<Node> nodes = null;
 
   /**
    * If true than [View] is part of [ViewPort] if false than it is cached view ready for reuse.
@@ -60,7 +63,17 @@ class View {
    * Attaching/detaching requires moving the View from one list to the other.
    */
   View nextView, prevView;
-  ViewPort headViewPort, tailViewPort;
-  DirectiveInjector headDirectiveInjector, tailDirectiveInjector;
+  
+  /**
+   * A [View] can have zero or mare [ViewPort]s. Use head/tail to keep track of the [ViewPort]s. 
+   * The [ViewPort] list is fixed once the [View] is created.
+   */
+  final ViewPort headViewPort = null, tailViewPort = null;
+  
+  /**
+   * A [View] has a depth-first liste of [DirectiveInjector]s which are used for
+   * instantiating the Views.
+   */
+  final DirectiveInjector headDirectiveInjector = null, tailDirectiveInjector = null;
 
 }

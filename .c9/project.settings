@@ -1,0 +1,59 @@
+{
+    "run": {
+        "@path": "/.c9/runners",
+        "configs": {
+            "json()": {
+                "karma-server": {
+                    "debug": true,
+                    "command": "/home/ubuntu/workspace/node_modules/karma/bin/karma start karma.conf.js --browsers= --port=8080",
+                    "name": "karma-server",
+                    "runner": "Shell command",
+                    "env": {
+                        "PATH": "$PATH:/home/ubuntu/dart-sdk/bin/ "
+                    },
+                    "cwd": "/"
+                },
+                "Karma - run": {
+                    "debug": true,
+                    "command": "/home/ubuntu/workspace/node_modules/karma/bin/karma run --port=8080",
+                    "name": "Karma - run",
+                    "runner": "Shell command",
+                    "cwd": "/"
+                },
+                "Analyze Design": {
+                    "debug": true,
+                    "name": "Analyze Design",
+                    "command": " /home/ubuntu/dart-sdk/bin/dartanalyzer design/_main.dart",
+                    "runner": "Shell command",
+                    "cwd": "/"
+                }
+            },
+            "@inited": "true"
+        }
+    },
+    "share": {
+        "@preview": false,
+        "@app": false,
+        "@useOwnerSettings": true
+    },
+    "ace": {
+        "@newLineMode": "unix",
+        "@tabSize": 2,
+        "@useSoftTabs": "true",
+        "@guessTabSize": "true"
+    },
+    "find.nak": {
+        "@searchLimit": 100
+    },
+    "language": {
+        "@warnLevel": "info",
+        "@instanceHighlight": "true",
+        "@undeclaredVars": "true",
+        "@unusedFunctionArgs": "false"
+    },
+    "build": {
+        "@path": "/.c9/builders",
+        "@saveall": true,
+        "@builder": "auto"
+    }
+}

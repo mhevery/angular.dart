@@ -1,10 +1,10 @@
 library angular.dom.view;
 
-import "view.dart";
+import "view.dart" show View;
 
 /**
  * Since Views are cacheable the goal is to never give out an instance of [View] to an application,
- * instead to always wrap it in [ViewRef], This way, even if the application fails to release a
+ * instead to [View]s are wrapped in [ViewRef]. This way, even if the application fails to release a
  * [ViewRef], the underlying [View] can be released and reused and the [ViewRef] rendered stale.
  */
 class ViewRef {
